@@ -555,7 +555,7 @@ class ReportesDeudaController extends Controller
         $mercadoActual = $mercado;
         $rowTable .= "
           <tr>
-            <td colspan='5' style='text-align:left;background:#e9e9e9;font-weight:bold;padding:4px 6px;'>MERCADO: {$mercado}</td>
+            <td colspan='3' style='text-align:left;background:#e9e9e9;font-weight:bold;padding:4px 6px;'>MERCADO: {$mercado}</td>
           </tr>
         ";
       }
@@ -565,18 +565,16 @@ class ReportesDeudaController extends Controller
       $direccion = htmlspecialchars($cliente['direccion']);
       $telefono  = htmlspecialchars($cliente['telefono']);
       $rowTable .= "
-        <tr style='height:34px;'>
+        <tr>
           <td style='text-align:center;'>{$n}</td>
           <td style='text-align:left;'>{$nombre}<br><span style='font-size:9px;color:#555;'>{$documento} · {$telefono}</span></td>
           <td style='text-align:left;'>{$direccion}</td>
-          <td style='text-align:left;'></td>
-          <td style='text-align:center;'></td>
         </tr>
       ";
     }
 
     if ($rowTable === '') {
-      $rowTable = "<tr><td colspan='5' style='text-align:center;padding:12px;'>No se encontraron clientes para el filtro seleccionado.</td></tr>";
+      $rowTable = "<tr><td colspan='3' style='text-align:center;padding:12px;'>No se encontraron clientes para el filtro seleccionado.</td></tr>";
     }
 
     $html = "
@@ -591,11 +589,9 @@ class ReportesDeudaController extends Controller
             <table border='1' style='width: 100%; text-align: center; border-collapse: collapse; font-size:11px;'>
                 <thead>
                   <tr style='background:#d0d0d0;'>
-                      <th style='padding: 3px 6px; width:5%;'>N°</th>
-                      <th style='padding: 3px 6px; width:27%;'>CLIENTE</th>
-                      <th style='padding: 3px 6px; width:23%;'>DIRECCIÓN</th>
-                      <th style='padding: 3px 6px; width:35%;'>PRODUCTO</th>
-                      <th style='padding: 3px 6px; width:10%;'>CANT.</th>
+                      <th style='padding: 3px 6px; width:8%;'>N°</th>
+                      <th style='padding: 3px 6px; width:52%;'>CLIENTE</th>
+                      <th style='padding: 3px 6px; width:40%;'>DIRECCIÓN</th>
                   </tr>
                 </thead>
                 <tbody>
