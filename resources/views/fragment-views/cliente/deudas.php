@@ -102,6 +102,7 @@
                                                 <li><a class="dropdown-item" href="#" id="reporteCobros">Reporte Cobros</a></li>
                                                 <li><a class="dropdown-item" href="#" id="reporteCobrosVendedor">Cobros por Vendedor</a></li>
                                                 <li><a class="dropdown-item" href="#" id="reporteCobrosRuta">Deuda por Ruta</a></li>
+                                                <li><a class="dropdown-item" href="#" id="reporteHojaRuta">Hoja de Ruta / Pedidos</a></li>
                                                 <li><a class="dropdown-item" href="#" id="reporteVentas">Ventas por Producto</a></li>
                                                 <li><a class="dropdown-item" href="#" id="reporteVentasVendedor">Ventas por Proveedor</a></li>
                                             </ul>
@@ -379,6 +380,14 @@
             }
             let filtros = new URLSearchParams(data).toString();
             let url = `${_URL}/reporte/deudas/ruta?${filtros}`;
+            window.open(url,'_blank');
+        });
+
+        $(document).on('click','#reporteHojaRuta',function(e){
+            e.preventDefault();
+            let data = obtenerDataFiltroReporte();
+            let filtros = new URLSearchParams(data).toString();
+            let url = `${_URL}/reporte/deudas/visitas?${filtros}`;
             window.open(url,'_blank');
         });
 

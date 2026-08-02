@@ -7,6 +7,37 @@ class ReporteDeudas
         $this->conectar = (new Conexion())->getConexion();
     }
 
+    /**
+     * Lista TODOS los clientes activos que coincidan con el dia de visita y ruta
+     * seleccionados (independiente de deuda o compras). Sirve para la hoja de
+     * ruta que usan los vendedores nuevos para hacer pedidos en campo.
+     */
+    public function getClientesParaVisita($whereClientes, $whereDiasVisita, $whereRuta)
+    {
+        try {
+            $sql = "SELECT
+                        c.documento,
+                        c.datos AS cliente,
+                        IFNULL(c.direccion, '') AS direccion,
+                        IFNULL(c.telefono, '')  AS telefono,
+                        IFNULL(c.mercado, '')   AS mercado,
+                        IFNULL(c.dias_visitas, '') AS dias_visitas,
+                        IFNULL(c.id_ruta, '')   AS id_ruta
+                    FROM clientes c
+                    WHERE c.id_empresa = '{$_SESSION['id_empresa']}'
+                    $whereClientes
+                    $whereDiasVisita
+                    $whereRuta
+                    ORDER BY c.mercado ASC, c.datos ASC";
+
+            $fila = mysqli_query($this->conectar, $sql);
+            return mysqli_fetch_all($fila, MYSQLI_ASSOC);
+        } catch (Exception $e) {
+            echo $e->getTraceAsString();
+            return [];
+        }
+    }
+
     public function getAllCobros($whereCliente, $whereVendedor, $whereFecha, $whereClientes, $whereDiasVisita, $whereRuta)
     {
         try {

@@ -520,6 +520,96 @@ class ReportesDeudaController extends Controller
 
   }
 
+  /**
+   * Hoja de Ruta / Pedidos: lista todos los clientes del dia de visita y ruta
+   * seleccionados, agrupados por mercado, con columnas en blanco para que el
+   * vendedor anote el pedido (producto / cantidad) durante la visita.
+   */
+  public function hojaVisitaRuta($id_vendedor = null)
+  {
+    $id_cliente  = $_GET['id_cliente']  ?? '';
+    $id_vendedor = $_GET['id_vendedor'] ?? '';
+    $camion      = $_GET['camion']      ?? '';
+    $diasVisita  = $_GET['diasVisita']  ?? '';
+    $ruta        = $_GET['ruta']        ?? '';
+
+    $filtros = $this->obtenerFiltros(4, $id_cliente, $id_vendedor, $camion, $diasVisita, $ruta);
+    $whereClientes   = $filtros['whereClientes'];
+    $whereDiasVisita = $filtros['whereDiasVisita'];
+    $whereRuta       = $filtros['whereRuta'];
+
+    #titulo: dia y ruta seleccionados
+    $diaTexto  = $diasVisita != '' ? ucfirst($diasVisita) : 'Todos los días';
+    $rutaTexto = $ruta != '' ? $ruta : 'Todas';
+    $titulo    = 'HOJA DE RUTA / PEDIDOS';
+    $subtitulo = 'Día de visita: ' . $diaTexto . '  |  Ruta: ' . $rutaTexto;
+
+    $clientes = $this->reporte->getClientesParaVisita($whereClientes, $whereDiasVisita, $whereRuta);
+
+    $rowTable = '';
+    $n = 0;
+    $mercadoActual = null;
+    foreach ($clientes as $cliente) {
+      $mercado = trim($cliente['mercado']) != '' ? strtoupper($cliente['mercado']) : 'SIN MERCADO';
+      if ($mercado !== $mercadoActual) {
+        $mercadoActual = $mercado;
+        $rowTable .= "
+          <tr>
+            <td colspan='5' style='text-align:left;background:#e9e9e9;font-weight:bold;padding:4px 6px;'>MERCADO: {$mercado}</td>
+          </tr>
+        ";
+      }
+      $n++;
+      $documento = htmlspecialchars($cliente['documento']);
+      $nombre    = htmlspecialchars($cliente['cliente']);
+      $direccion = htmlspecialchars($cliente['direccion']);
+      $telefono  = htmlspecialchars($cliente['telefono']);
+      $rowTable .= "
+        <tr style='height:34px;'>
+          <td style='text-align:center;'>{$n}</td>
+          <td style='text-align:left;'>{$nombre}<br><span style='font-size:9px;color:#555;'>{$documento} · {$telefono}</span></td>
+          <td style='text-align:left;'>{$direccion}</td>
+          <td style='text-align:left;'></td>
+          <td style='text-align:center;'></td>
+        </tr>
+      ";
+    }
+
+    if ($rowTable === '') {
+      $rowTable = "<tr><td colspan='5' style='text-align:center;padding:12px;'>No se encontraron clientes para el filtro seleccionado.</td></tr>";
+    }
+
+    $html = "
+    <div style='width: 100%;'>
+        <div style='width: 100%; text-align: center;'>
+            <h2 style='margin:0px;'>{$titulo}</h2>
+            <h5 style='margin:0px;'>{$subtitulo}</h5>
+            <p style='margin:2px 0 0 0;font-size:10px;'>Total clientes: " . count($clientes) . "</p>
+        </div>
+
+        <div style='width: 100%; margin-top:15px;'>
+            <table border='1' style='width: 100%; text-align: center; border-collapse: collapse; font-size:11px;'>
+                <thead>
+                  <tr style='background:#d0d0d0;'>
+                      <th style='padding: 3px 6px; width:5%;'>N°</th>
+                      <th style='padding: 3px 6px; width:27%;'>CLIENTE</th>
+                      <th style='padding: 3px 6px; width:23%;'>DIRECCIÓN</th>
+                      <th style='padding: 3px 6px; width:35%;'>PRODUCTO</th>
+                      <th style='padding: 3px 6px; width:10%;'>CANT.</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  $rowTable
+                </tbody>
+            </table>
+        </div>
+    </div>
+    ";
+
+    $this->mpdf->WriteHTML($html, \Mpdf\HTMLParserMode::HTML_BODY);
+    $this->mpdf->Output();
+  }
+
   public function deudaPorVendedor2($id_vendedor)
   {
     $id_cliente = $_GET['id_cliente'];

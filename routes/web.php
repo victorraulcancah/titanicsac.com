@@ -84,6 +84,7 @@ Route::postBase("/deudas", "FragmentController@deudas");
 Route::get("/reporte/deudas/cobros","ReportesDeudaController@reporteCobros");
 Route::get("/reporte/deudas/vendedor","ReportesDeudaController@deudaPorVendedor");
 Route::get("/reporte/deudas/ruta","ReportesDeudaController@deudaPorRuta");
+Route::get("/reporte/deudas/visitas","ReportesDeudaController@hojaVisitaRuta");
 Route::get("/reporte/ventas","ReportesDeudaController@reporteVentaPorProducto");
 Route::get("/reporte/ventas/vendedor","ReportesDeudaController@reporteVentasVendedor");
 
