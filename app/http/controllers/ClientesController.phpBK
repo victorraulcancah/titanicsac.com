@@ -61,7 +61,7 @@ class ClientesController extends Controller
     //         $whereRuta = "AND c.id_ruta = '$ruta'";
     //     }
 
-    //     // Filtros por cami„1¤7„1¤7n
+    //     // Filtros por camiï¿½1ï¿½7ï¿½1ï¿½7n
     //     switch ($camion) {
     //         case '1':
     //             $filtros = [
@@ -94,7 +94,7 @@ class ClientesController extends Controller
     //             break;
     //     }
 
-    //     // Si se seleccion„1¤7„1¤7 un d„1¤7„1¤7a espec„1¤7„1¤7fico
+    //     // Si se seleccionï¿½1ï¿½7ï¿½1ï¿½7 un dï¿½1ï¿½7ï¿½1ï¿½7a especï¿½1ï¿½7ï¿½1ï¿½7fico
     //     if ($diasVisita != "" && isset($filtros[$diasVisita])) {
     //         $filtros = [
     //             $diasVisita => $filtros[$diasVisita]
@@ -189,7 +189,7 @@ class ClientesController extends Controller
             $whereRuta = "AND c.id_ruta = '$ruta'";
         }
     
-        // Filtros por cami¨®n
+        // Filtros por camiï¿½ï¿½n
         switch ($camion) {
             case '1':
                 $filtros = [
@@ -222,7 +222,7 @@ class ClientesController extends Controller
                 break;
         }
     
-        // Si se seleccion¨® un d¨ªa espec¨ªfico
+        // Si se seleccionï¿½ï¿½ un dï¿½ï¿½a especï¿½ï¿½fico
         if ($diasVisita != "" && isset($filtros[$diasVisita])) {
             $filtros = [
                 $diasVisita => $filtros[$diasVisita]
@@ -247,7 +247,7 @@ class ClientesController extends Controller
         }
     
         try {
-            // Determinar ordenamiento din¨¢mico basado en filtros de fecha
+            // Determinar ordenamiento dinï¿½ï¿½mico basado en filtros de fecha
             $hayFiltroFecha = !empty($fecha_inicio) || !empty($fecha_fin);
             
             if ($hayFiltroFecha) {
@@ -264,7 +264,7 @@ class ClientesController extends Controller
                     tb.fecha_emision DESC";
             }
 
-            // CONSULTA con ORDER BY din¨¢mico
+            // CONSULTA con ORDER BY dinï¿½ï¿½mico
             $sql = "SELECT tb.*, tb.total - tb.pagado AS saldo FROM (
                 SELECT 
                     'c' AS tipo_co,
@@ -339,7 +339,7 @@ class ClientesController extends Controller
         }
 
 
-        // Filtros por cami„1¤7„1¤7n
+        // Filtros por camiï¿½1ï¿½7ï¿½1ï¿½7n
         switch ($camion) {
             case '1':
                 $filtros = [
@@ -372,7 +372,7 @@ class ClientesController extends Controller
                 break;
         }
 
-        // Si se seleccion„1¤7„1¤7 un d„1¤7„1¤7a espec„1¤7„1¤7fico
+        // Si se seleccionï¿½1ï¿½7ï¿½1ï¿½7 un dï¿½1ï¿½7ï¿½1ï¿½7a especï¿½1ï¿½7ï¿½1ï¿½7fico
         if ($diasVisita != "" && isset($filtros[$diasVisita])) {
             $filtros = [
                 $diasVisita => $filtros[$diasVisita]
@@ -518,7 +518,7 @@ class ClientesController extends Controller
                  <tr>
                      <th>Factura</th>
                      <th>Cliente</th>
-                     <th>F. Emisi„1¤7„1¤7n</th>
+                     <th>F. Emisiï¿½1ï¿½7ï¿½1ï¿½7n</th>
                      <th>F. Vencimiento</th>
                      <th>Total (S/.)</th>
                      <th>Pagado (S/.)</th>
@@ -802,7 +802,7 @@ class ClientesController extends Controller
         $row++;
 
         foreach ($data as $index => $rowData) {
-            $sheet->setCellValue('A' . $row, $index + 1); // Columna # (0ˆ1ndice)
+            $sheet->setCellValue('A' . $row, $index + 1); // Columna # (ï¿½0ï¿½1ndice)
             $sheet->setCellValue('B' . $row, $rowData['documento']);
             $sheet->setCellValue('C' . $row, $rowData['datos']);
             $sheet->setCellValue('D' . $row, $rowData['direccion']);
@@ -875,7 +875,7 @@ class ClientesController extends Controller
             $clientes[] = $row;
         }
 
-        // Verificar si se encontr¨® una cotizaci¨®n
+        // Verificar si se encontrï¿½ï¿½ una cotizaciï¿½ï¿½n
         if (sizeof($clientes) <= 0) {
             die("No se encontraron clientes para ruta: " . $id_ruta);
         }
@@ -934,6 +934,6 @@ class ClientesController extends Controller
         </div>";
         $mpdf->WriteHTML($html, \Mpdf\HTMLParserMode::HTML_BODY);
 
-        $mpdf->Output("clientes_d¨ªa_{$dia_visita}.pdf", 'I');
+        $mpdf->Output("clientes_dï¿½ï¿½a_{$dia_visita}.pdf", 'I');
     }
 }
