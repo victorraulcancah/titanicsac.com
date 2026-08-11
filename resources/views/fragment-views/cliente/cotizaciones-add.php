@@ -523,7 +523,7 @@
 												</tr>
 											</thead>
 											<tbody id="bc-resultados">
-												<tr><td colspan="8" class="text-center text-muted">Realice una búsqueda</td></tr>
+												<tr><td colspan="8" class="text-center text-muted">Cargando...</td></tr>
 											</tbody>
 										</table>
 									</div>
@@ -1435,6 +1435,7 @@ function verificarEstadoSesion(callback) {
 			$("#btn-abrir-buscador-cliente").on("click", function() {
 				cargarFiltrosCliente();
 				$("#modal-buscar-cliente").modal("show");
+				buscarClientes();
 				setTimeout(function() {
 					$("#bc-termino").focus();
 				}, 400);

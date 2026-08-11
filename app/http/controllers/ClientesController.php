@@ -723,7 +723,7 @@ class ClientesController extends Controller
                 $where
                 ORDER BY CAST(CASE WHEN c.mercado IS NULL OR c.mercado = '' THEN 999 ELSE c.mercado END AS UNSIGNED) ASC,
                          c.datos ASC
-                LIMIT 300";
+                LIMIT 1000";
 
         $resultado = $this->conectar->query($sql);
         $lista = $resultado ? $resultado->fetch_all(MYSQLI_ASSOC) : [];
