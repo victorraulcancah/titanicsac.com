@@ -9,7 +9,7 @@ class CobrosVendedorController extends Controller
         $this->conexion = (new Conexion())->getConexion();
     }
 
-    // Obtener cobros por rango de fechas del vendedor
+    // Obtener cobros por rango de fechas del vendedora
     public function obtenerCobrosPorRango()
     {
         $id_usuario = isset($_SESSION['usuario_id']) ? $_SESSION['usuario_id'] : $_SESSION['usuario_fac'];
