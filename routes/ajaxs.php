@@ -54,6 +54,7 @@ Route::post("/ajs/clientes/add","ClientesController@insertar")->Middleware([Vali
 Route::post("/ajs/clientes/add/por/lista","ClientesController@insertarXLista")->Middleware([ValidarTokenMiddleware::class]);
 Route::post("/ajs/clientes/render","ClientesController@render")->Middleware([ValidarTokenMiddleware::class]);
 Route::post("/ajs/clientes/getOne","ClientesController@getOne")->Middleware([ValidarTokenMiddleware::class]);
+Route::post("/ajs/clientes/buscar/modal","ClientesController@buscarModal")->Middleware([ValidarTokenMiddleware::class]);
 Route::post("/ajs/clientes/editar","ClientesController@editar")->Middleware([ValidarTokenMiddleware::class]);
 Route::post("/ajs/clientes/borrar","ClientesController@borrar")->Middleware([ValidarTokenMiddleware::class]);
 /* Route::post("/ajs/clientes/importAdd","ClientesController@importAdd"); */

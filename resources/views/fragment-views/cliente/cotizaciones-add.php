@@ -26,6 +26,10 @@
 
 				<div class="card-title-desc">
 					<div class="col-lg-12 text-end">
+						<button type="button" id="btn-abrir-buscador-cliente" title="Buscar cliente" class="btn btn-info" style="margin-right:15px;color:#fff;">
+							<i class="fa fa-user"></i>
+						</button>
+
 						<button type="button" onclick="$('#btn_finalizar_pedido').click()" class="btn btn-primary">
 							<i class="fa fa-plus "></i> Guardar Pedido
 						</button>
@@ -459,6 +463,77 @@
 						</div>
 					</div>
 
+
+					<!-- Modal de búsqueda de clientes -->
+					<div class="modal fade" id="modal-buscar-cliente" tabindex="-1" aria-hidden="true">
+						<div class="modal-dialog modal-dialog-centered modal-xl">
+							<div class="modal-content">
+								<div class="modal-header">
+									<h5 class="modal-title"><i class="fa fa-user"></i> Buscar Cliente</h5>
+									<button type="button" class="btn-close" data-bs-dismiss="modal" data-dismiss="modal" aria-label="Close"></button>
+								</div>
+								<div class="modal-body">
+									<div class="row mb-3">
+										<div class="col-md-4">
+											<label class="form-label">Buscar</label>
+											<input type="text" id="bc-termino" class="form-control" placeholder="Documento, nombre o dirección" autocomplete="off">
+										</div>
+										<div class="col-md-3">
+											<label class="form-label">Mercado</label>
+											<select id="bc-mercado" class="form-control">
+												<option value="">Todos</option>
+											</select>
+										</div>
+										<div class="col-md-2">
+											<label class="form-label">Ruta</label>
+											<select id="bc-ruta" class="form-control">
+												<option value="">Todas</option>
+											</select>
+										</div>
+										<div class="col-md-2">
+											<label class="form-label">Día visita</label>
+											<select id="bc-dia" class="form-control">
+												<option value="">Todos</option>
+												<option value="LUNES">Lunes</option>
+												<option value="MARTES">Martes</option>
+												<option value="MIERCOLES">Miércoles</option>
+												<option value="JUEVES">Jueves</option>
+												<option value="VIERNES">Viernes</option>
+												<option value="SABADO">Sábado</option>
+												<option value="DOMINGO">Domingo</option>
+											</select>
+										</div>
+										<div class="col-md-1 d-flex align-items-end">
+											<button type="button" id="bc-btn-buscar" class="btn btn-primary w-100"><i class="fa fa-search"></i></button>
+										</div>
+									</div>
+
+									<div style="max-height: 380px; overflow-y: auto;">
+										<table class="table table-sm table-bordered table-hover mb-0">
+											<thead style="position: sticky; top: 0; background:#f8f9fa;">
+												<tr>
+													<th>Documento</th>
+													<th>Cliente</th>
+													<th>Dirección</th>
+													<th>Teléfono</th>
+													<th>Mercado</th>
+													<th>Ruta</th>
+													<th>Días visita</th>
+													<th></th>
+												</tr>
+											</thead>
+											<tbody id="bc-resultados">
+												<tr><td colspan="8" class="text-center text-muted">Realice una búsqueda</td></tr>
+											</tbody>
+										</table>
+									</div>
+								</div>
+								<div class="modal-footer">
+									<button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-dismiss="modal">Cerrar</button>
+								</div>
+							</div>
+						</div>
+					</div>
 
 					<div class="modal fade" id="modalSelMultiProd" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
 						<div class="modal-dialog modal-dialog-centered  modal-lg">
@@ -1292,6 +1367,97 @@ function verificarEstadoSesion(callback) {
 				$('#input_datos_cliente').focus();*/
 			}
 		});
+		/* ===== Modal buscador de clientes ===== */
+		(function() {
+			var cargadosFiltros = false;
+
+			function cargarFiltrosCliente() {
+				if (cargadosFiltros) return;
+				cargadosFiltros = true;
+
+				_ajax("/ajs/admin/cliente/mercados", "GET", {}, function(resp) {
+					var options = '<option value="">Todos</option>';
+					$.each(resp, function(i, r) {
+						options += '<option value="' + r.mercado + '">' + r.mercado + '</option>';
+					});
+					$("#bc-mercado").html(options);
+				});
+
+				_ajax("/ajs/admin/cliente/rutas", "GET", {}, function(resp) {
+					var options = '<option value="">Todas</option>';
+					$.each(resp, function(i, r) {
+						options += '<option value="' + r.id_ruta + '">' + r.id_ruta + '</option>';
+					});
+					$("#bc-ruta").html(options);
+				});
+			}
+
+			function escapeHtml(v) {
+				return $('<div>').text(v == null ? '' : v).html();
+			}
+
+			function buscarClientes() {
+				$("#bc-resultados").html('<tr><td colspan="8" class="text-center text-muted">Buscando...</td></tr>');
+
+				_ajax("/ajs/clientes/buscar/modal", "POST", {
+					termino: $("#bc-termino").val(),
+					mercado: $("#bc-mercado").val(),
+					ruta: $("#bc-ruta").val(),
+					dia_visita: $("#bc-dia").val()
+				}, function(resp) {
+					if (!resp || resp.length == 0) {
+						$("#bc-resultados").html('<tr><td colspan="8" class="text-center text-muted">Sin resultados</td></tr>');
+						return;
+					}
+
+					var html = '';
+					$.each(resp, function(i, c) {
+						html += '<tr>' +
+							'<td>' + escapeHtml(c.documento) + '</td>' +
+							'<td>' + escapeHtml(c.datos) + '</td>' +
+							'<td>' + escapeHtml(c.direccion) + '</td>' +
+							'<td>' + escapeHtml(c.telefono) + '</td>' +
+							'<td class="text-center">' + escapeHtml(c.mercado) + '</td>' +
+							'<td class="text-center">' + escapeHtml(c.id_ruta) + '</td>' +
+							'<td>' + escapeHtml(c.dias_visitas) + '</td>' +
+							'<td class="text-center">' +
+							'<button type="button" class="btn btn-sm btn-success bc-seleccionar"' +
+							' data-doc="' + escapeHtml(c.documento) + '"' +
+							' data-nom="' + escapeHtml(c.datos) + '"' +
+							' data-dir="' + escapeHtml(c.direccion) + '">Seleccionar</button>' +
+							'</td>' +
+							'</tr>';
+					});
+					$("#bc-resultados").html(html);
+				});
+			}
+
+			$("#btn-abrir-buscador-cliente").on("click", function() {
+				cargarFiltrosCliente();
+				$("#modal-buscar-cliente").modal("show");
+				setTimeout(function() {
+					$("#bc-termino").focus();
+				}, 400);
+			});
+
+			$("#bc-btn-buscar").on("click", buscarClientes);
+			$("#bc-mercado, #bc-ruta, #bc-dia").on("change", buscarClientes);
+			$("#bc-termino").on("keypress", function(e) {
+				if (e.which == 13) {
+					e.preventDefault();
+					buscarClientes();
+				}
+			});
+
+			$(document).on("click", ".bc-seleccionar", function() {
+				app._data.venta.dir_pos = 1;
+				app._data.venta.num_doc = $(this).data("doc");
+				app._data.venta.nom_cli = $(this).data("nom");
+				app._data.venta.dir_cli = $(this).data("dir");
+				$("#modal-buscar-cliente").modal("hide");
+			});
+		})();
+
 		$("#input_buscar_productos").autocomplete({
 
 			source: _URL + `/ajs/cargar/productos/${app.producto.almacen}`,

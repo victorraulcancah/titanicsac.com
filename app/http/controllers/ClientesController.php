@@ -689,6 +689,47 @@ class ClientesController extends Controller
         $getOne = $this->cliente->getOne($id);
         echo json_encode($getOne);
     }
+
+    /**
+     * Búsqueda de clientes para el modal de pedidos/cotizaciones.
+     * Filtros: término (documento/nombre/dirección), mercado, ruta y día de visita.
+     */
+    public function buscarModal()
+    {
+        $termino     = isset($_POST['termino']) ? trim($_POST['termino']) : '';
+        $mercado     = isset($_POST['mercado']) ? trim($_POST['mercado']) : '';
+        $ruta        = isset($_POST['ruta']) ? trim($_POST['ruta']) : '';
+        $diaVisita   = isset($_POST['dia_visita']) ? trim($_POST['dia_visita']) : '';
+
+        $where = "WHERE c.id_empresa = '" . $this->conectar->real_escape_string($_SESSION['id_empresa']) . "'";
+
+        if ($termino !== '') {
+            $t = $this->conectar->real_escape_string($termino);
+            $where .= " AND (c.documento LIKE '%$t%' OR c.datos LIKE '%$t%' OR c.direccion LIKE '%$t%')";
+        }
+        if ($mercado !== '') {
+            $where .= " AND c.mercado = '" . $this->conectar->real_escape_string($mercado) . "'";
+        }
+        if ($ruta !== '') {
+            $where .= " AND c.id_ruta = '" . $this->conectar->real_escape_string($ruta) . "'";
+        }
+        if ($diaVisita !== '') {
+            $where .= " AND c.dias_visitas LIKE '%" . $this->conectar->real_escape_string($diaVisita) . "%'";
+        }
+
+        $sql = "SELECT c.id_cliente, c.documento, c.datos, c.direccion, c.telefono,
+                       c.mercado, c.id_ruta, c.dias_visitas
+                FROM clientes AS c
+                $where
+                ORDER BY CAST(CASE WHEN c.mercado IS NULL OR c.mercado = '' THEN 999 ELSE c.mercado END AS UNSIGNED) ASC,
+                         c.datos ASC
+                LIMIT 300";
+
+        $resultado = $this->conectar->query($sql);
+        $lista = $resultado ? $resultado->fetch_all(MYSQLI_ASSOC) : [];
+
+        echo json_encode($lista);
+    }
     public function cuentasCobrar()
     {
         /* $presupuesto = new PresupuestosModel(); */
