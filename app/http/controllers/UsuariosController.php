@@ -6,6 +6,7 @@ class UsuariosController extends Controller
 {
 
     private $cliente;
+    private $conectar;
 
     public function __construct()
     {
@@ -33,7 +34,7 @@ class UsuariosController extends Controller
             if ($value == 0) {
                 echo json_encode([
                     'success' => true,
-                    'message' => 'Tu cuenta ha sido desactivada, por favor inicia sesi¨®n de nuevo.'
+                    'message' => 'Tu cuenta ha sido desactivada, por favor inicia sesiï¿½ï¿½n de nuevo.'
                 ]);
                 exit();
                 // session_unset();
@@ -41,7 +42,7 @@ class UsuariosController extends Controller
 
                 echo json_encode([
                     'success' => false,
-                    'message' => 'Tu cuenta ha sido desactivada, por favor inicia sesi¨®n de nuevo.'
+                    'message' => 'Tu cuenta ha sido desactivada, por favor inicia sesiï¿½ï¿½n de nuevo.'
                 ]);
                 //exit();
             } else {
@@ -53,7 +54,7 @@ class UsuariosController extends Controller
         } else {
             echo json_encode([
                 'success' => false,
-                'message' => 'No est¨¢s logueado'
+                'message' => 'No estï¿½ï¿½s logueado'
             ]);
         }
     }

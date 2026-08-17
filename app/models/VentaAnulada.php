@@ -77,6 +77,10 @@ class VentaAnulada
 
         $listaVP = $this->conectar->query($sql);
 
+        # Kardex: las salidas originales de la venta NO se eliminan; quedan marcadas como ANULADAS
+        require_once __DIR__ . '/Kardex.php';
+        (new Kardex($this->conectar))->anularPorReferencia('venta:' . $this->id_venta, 'e');
+
         foreach ($listaVP as $item){
             $presenta_cnt = ($item['presenta_cnt'] && $item['presenta_cnt']) ? $item['presenta_cnt'] : 1;
             $cantidad = $item['cantidad']*$presenta_cnt;
@@ -84,6 +88,9 @@ class VentaAnulada
             $sql="update productos set  cantidad= cantidad+'{$cantidad}' where id_producto='{$item['id_producto']}' ";
             //echo $sql;
             $this->conectar->query($sql);
+            # Kardex: ingreso por anulación de venta (motivo fijo de sistema)
+            require_once __DIR__ . '/Kardex.php';
+            (new Kardex($this->conectar))->registrar($item['id_producto'], 'i', 'Anulacion de venta', $cantidad, 'venta:' . $this->id_venta);
             #
             if($venta['id_tido']==6){
                 $sql_1="

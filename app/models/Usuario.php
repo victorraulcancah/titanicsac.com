@@ -12,6 +12,7 @@ class Usuario
     private $apellidos;
     private $token_reset;
     private $estado;
+    private $sucursal;
 
     private $conectar;
 

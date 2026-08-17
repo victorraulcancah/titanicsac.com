@@ -69,6 +69,20 @@ Route::post('/ajs/pagar/total/ventas', "PagosController@totalCuotaVentas");
 
 
 Route::post('/ajs/cuentas/cobrar/render',"CobranzaController@render");
+
+# ALMACEN â€” Kardex y movimientos manuales
+Route::post('/ajs/almacen/kardex/producto',"AlmacenController@kardexProducto");
+Route::post('/ajs/almacen/kardex/general',"AlmacenController@kardexGeneral");
+Route::post('/ajs/almacen/cuadres',"AlmacenController@cuadres");
+Route::post('/ajs/almacen/cuadre/anular',"AlmacenController@cuadreAnular");
+Route::post('/ajs/almacen/cuadre/editar',"AlmacenController@cuadreEditar");
+Route::post('/ajs/almacen/motivos',"AlmacenController@motivos");
+Route::post('/ajs/almacen/motivos/todos',"AlmacenController@motivosTodos");
+Route::post('/ajs/almacen/motivo/crear',"AlmacenController@motivoCrear");
+Route::post('/ajs/almacen/motivo/editar',"AlmacenController@motivoEditar");
+Route::post('/ajs/almacen/motivo/eliminar',"AlmacenController@motivoEliminar");
+Route::post('/ajs/almacen/movimiento/registrar',"AlmacenController@registrarMovimiento");
+Route::post('/ajs/almacen/producto/buscar',"AlmacenController@buscarProducto");
 Route::post('/ajs/cuentas/deuda/render', "CobranzaController@renderDeudas");
 Route::post('/ajs/cobranzas/filtrar', "CobranzaController@filtrarCobranzas");
 
@@ -86,6 +100,10 @@ Route::post('/ajs/caja/chica/cerrar',"CajaController@cerrarCajaChica");
 
 
 Route::post('/ajs/prodcutos/compras/render',"ComprasController@getAll");
+Route::post('/ajs/compras/recepcion/estado',"ComprasController@recepcionEstado");
+Route::post('/ajs/compras/recepcion/registrar',"ComprasController@recepcionRegistrar");
+Route::post('/ajs/compras/recepcion/anular',"ComprasController@recepcionAnular");
+Route::post('/ajs/compras/recepcion/editar',"ComprasController@recepcionEditar");
 Route::post('/ajas/compra/detalle',"ComprasController@getDetalle");
 Route::post('/ajas/compra/buscar/producto',"ComprasController@buscarProducto");
 Route::post('/ajas/compras/add',"ComprasController@guardarCompras");
@@ -116,6 +134,7 @@ Route::post("/ajs/set/state/pago/cv","ConsultasController@cambiarEstadoPAgoCv");
 
 #
 Route::post('/ajas/devolucones/render',"DevolucionesController@render");
+Route::post('/ajs/devoluciones/destino',"DevolucionesController@definirDestino");
 
 
 
@@ -144,7 +163,7 @@ Route::post("/ajs/cobros/vendedor/rango","CobrosVendedorController@obtenerCobros
 // Ruta para obtener detalle completo de caja (Admin)
 Route::post("/ajs/caja/detalle/completo","CajaVendedorController@obtenerDetalleCompleto")->Middleware([ValidarTokenMiddleware::class]);
 
-// Rutas nuevas para edici¨®n de caja
+// Rutas nuevas para ediciï¿½ï¿½n de caja
 Route::post("/ajs/caja/cobros/vendedor","CajaVendedorController@obtenerCobrosVendedor")->Middleware([ValidarTokenMiddleware::class]);
 Route::post("/ajs/caja/guardar","CajaVendedorController@guardarRegistroCaja")->Middleware([ValidarTokenMiddleware::class]);
 Route::post("/ajs/caja/registros/historicos","CajaVendedorController@obtenerRegistrosHistoricos")->Middleware([ValidarTokenMiddleware::class]);

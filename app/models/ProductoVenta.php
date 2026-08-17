@@ -212,9 +212,13 @@ class ProductoVenta
         }
 
         $cntRestante= $this->cantidad * $this->presenta_cnt;
- 
+
         $sql = "update productos set cantidad = cantidad - $cntRestante where id_producto='$this->id_producto'";
         $this->conectar->query($sql);
+
+        // Kardex: registrar la salida por venta (motivo fijo de sistema)
+        require_once __DIR__ . '/Kardex.php';
+        (new Kardex($this->conectar))->registrar($this->id_producto, 'e', 'Venta', $cntRestante, 'venta:' . $this->id_venta);
 
         return $result;
     }
