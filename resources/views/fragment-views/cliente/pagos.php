@@ -201,7 +201,7 @@
         }
 
         datatable = $("#datatable").DataTable({
-            order: [[8, 'asc']],
+            order: [[2, 'desc'], [0, 'desc']],
             paging: true,
             bFilter: true,
             ordering: true,
