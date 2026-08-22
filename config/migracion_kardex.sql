@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS almacen_motivos (
 -- 'Devolucion' es FIJO: lo genera la pantalla de Devoluciones (regresar a almacén / pérdida).
 -- Los recojos entran por la pantalla de Devoluciones (no son motivo manual propio).
 INSERT IGNORE INTO almacen_motivos (nombre, tipo, fijo) VALUES
-('Compra',            'i', '1'),
+('Recepcion de compra','i', '1'),
 ('Venta',             'e', '1'),
 ('Anulacion de venta','i', '1'),
 ('Edicion de venta',  'i', '1'),
@@ -31,6 +31,8 @@ INSERT IGNORE INTO almacen_motivos (nombre, tipo, fijo) VALUES
 ('Ajuste de cuadre',  'e', '0');
 
 -- Correcciones sobre bases que ya tenían la versión anterior de los motivos
+-- 'Compra' pasa a llamarse 'Recepcion de compra' (el stock entra al recepcionar, no al comprar)
+UPDATE almacen_motivos SET nombre='Recepcion de compra' WHERE nombre='Compra' AND tipo='i';
 UPDATE almacen_motivos SET fijo='1' WHERE nombre='Devolucion' AND tipo='i';
 UPDATE almacen_motivos SET activo='0' WHERE nombre='Recojo' AND tipo='i';
 

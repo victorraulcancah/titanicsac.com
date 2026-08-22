@@ -329,7 +329,7 @@ class ComprasController extends Controller
         $nuevoId = $this->conectar->insert_id;
         if ($recibida > 0) {
             $this->conectar->query("UPDATE productos SET cantidad = cantidad + $recibida WHERE id_producto = '{$rec['id_producto']}'");
-            $kardex->registrar($rec['id_producto'], 'i', 'Compra', $recibida, 'recepcion:' . $nuevoId, "Corrección de la recepción #$id (compra #{$rec['id_compra']})");
+            $kardex->registrar($rec['id_producto'], 'i', 'Recepcion de compra', $recibida, 'recepcion:' . $nuevoId, "Corrección de la recepción #$id (compra #{$rec['id_compra']})");
         }
         $nuevoEstado = $this->recalcularEstadoRecepcion($rec['id_compra']);
 
@@ -402,7 +402,7 @@ class ComprasController extends Controller
             if ($recibida > 0) {
                 $this->conectar->query("UPDATE productos SET cantidad = cantidad + $recibida WHERE id_producto = '$idProducto'");
                 $obsK = "Recepción #$idRecepcion de la compra #$idCompra" . ($rechazada > 0 ? " (rechazadas: $rechazada)" : '');
-                $kardex->registrar($idProducto, 'i', 'Compra', $recibida, 'recepcion:' . $idRecepcion, $obsK);
+                $kardex->registrar($idProducto, 'i', 'Recepcion de compra', $recibida, 'recepcion:' . $idRecepcion, $obsK);
             }
             $procesados++;
         }

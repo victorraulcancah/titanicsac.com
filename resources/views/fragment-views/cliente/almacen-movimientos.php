@@ -161,7 +161,7 @@
                                 <tbody id="tbodyMotivos"></tbody>
                             </table>
                         </div>
-                        <p class="text-muted fs-7 mb-0">Los motivos de <strong>sistema</strong> (Venta, Compra,
+                        <p class="text-muted fs-7 mb-0">Los motivos de <strong>sistema</strong> (Venta, Recepción de compra,
                             Devolución, etc.) los genera el sistema automáticamente y no se pueden editar ni eliminar.</p>
                     </div>
 

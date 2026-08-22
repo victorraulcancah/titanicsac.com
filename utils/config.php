@@ -1,6 +1,6 @@
 <?php
 // define("DOMINIO","http://facturacion_hatuna.test");
-define("DOMINIO","https://lencika.com");
+define("DOMINIO","https://titanicsac.com/");
 /**
  * DATABASE_CONFIG
  */

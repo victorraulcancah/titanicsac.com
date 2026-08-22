@@ -22,7 +22,7 @@ class Kardex
      *
      * @param int    $idProducto
      * @param string $tipo        'i' ingreso | 'e' salida
-     * @param string $motivo      nombre del motivo (ej. 'Venta', 'Compra')
+     * @param string $motivo      nombre del motivo (ej. 'Venta', 'Recepcion de compra')
      * @param float  $cantidad    cantidad en unidades (siempre positiva)
      * @param string $referencia  ej. 'venta:123', 'compra:45', 'manual'
      * @param string $observacion
