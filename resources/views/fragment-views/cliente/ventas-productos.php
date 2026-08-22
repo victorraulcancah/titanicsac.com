@@ -213,7 +213,7 @@ if (isset($_GET["coti"])) {
                                     <tr v-for="(item,index) in productos">
                                         <td>{{index+1}}</td>
                                         <td>{{item.descripcion}}</td>
-                                        <td><span v-if="!item.edicion">{{item.cantidad}} {{nombreMedida(item.presentacion)}} / {{item.presentacionCnt}}{{item.medida}}</span><input v-if="item.edicion" v-model="item.cantidad"></td>
+                                        <td><span v-if="!item.edicion">{{item.cantidad}}</span><input v-if="item.edicion" v-model="item.cantidad"></td>
                                         <td><span v-if="!item.edicion">{{formatoDecimal(item.precioVenta)}}</span><input v-if="item.edicion" v-model="item.precioVenta"></td>
                                         <td>{{formatoDecimal(item.precioVenta*item.cantidad)}}</td>
                                         <td>{{formatoDecimal(item.precioVenta*item.cantidad)}}</td>
