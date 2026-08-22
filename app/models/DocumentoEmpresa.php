@@ -101,12 +101,29 @@ class DocumentoEmpresa
 
     public function obtenerDatos()
     {
-        $sql = "select * 
-        from documentos_empresas 
+        $sql = "select *
+        from documentos_empresas
         where id_empresa = '$this->id_empresa' and id_tido = '$this->id_tido' and sucursal='{$_SESSION['sucursal']}'";
         $fila = $this->conectar->query($sql)->fetch_assoc();
         $this->serie = $fila['serie'];
         $this->numero = $fila['numero'];
+    }
+
+    /**
+     * Avanza el correlativo del documento (empresa + tipo + sucursal) después de emitir una venta.
+     * documentos_empresas.numero guarda el PRÓXIMO número a usar; sin este paso todas las
+     * ventas salían con el mismo número (ej. NV01-2945).
+     */
+    public function incrementarNumero()
+    {
+        $sql = "update documentos_empresas
+        set numero = numero + 1
+        where id_empresa = '$this->id_empresa' and id_tido = '$this->id_tido' and sucursal='{$_SESSION['sucursal']}'";
+        $ok = $this->conectar->query($sql);
+        if ($ok) {
+            $this->numero = intval($this->numero) + 1;
+        }
+        return $ok;
     }
 
     public function verFilas($texto)

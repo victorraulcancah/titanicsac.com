@@ -355,6 +355,16 @@ if (isset($_GET["coti"])) {
                                             </div>
                                         </div>
                                     </div>
+                                    <!-- CRÉDITO: cuotas de pago (misma temática que Cuentas por Cobrar, detalle en modal) -->
+                                    <div v-if="venta.tipo_pago == '2'" class="form-group mb-3">
+                                        <label class="control-label">Cuotas de pago</label>
+                                        <div class="d-grid">
+                                            <button type="button" class="btn btn-primary" @click="abrirModalCuotas"><i class="fa fa-list"></i> Cuotas de pago <span class="badge bg-light text-dark">{{ venta.dias_lista.length }}</span></button>
+                                        </div>
+                                        <small class="text-muted">Falta pagar: <strong class="text-danger">{{ monedaSibol }} {{ formatoDecimal(faltaPagarCuotas) }}</strong></small>
+                                    </div>
+                                    <!-- CONTADO: paga con / vuelto / métodos de pago -->
+                                    <template v-if="venta.tipo_pago != '2'">
                                     <div class="form-group  mb-3">
 
                                         <div class="col-lg-12">
@@ -413,6 +423,7 @@ if (isset($_GET["coti"])) {
                                             </div>
                                         </div>
                                     </div>
+                                    </template>
 
                                     <div class="form-group  mb-3">
                                         <div class="col-lg-12">
@@ -436,6 +447,89 @@ if (isset($_GET["coti"])) {
         </div>
     </div>
 
+
+    <!-- Modal: cuotas de pago de la venta a crédito (mismo diseño que Cuentas por Cobrar de Ventas) -->
+    <div class="modal fade" id="modal-cuotas-venta" tabindex="-1" aria-labelledby="modalCuotasVentaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h1 class="modal-title fs-5" id="modalCuotasVentaLabel">Cuotas de pago</h1>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <h4>Cliente: {{ venta.nom_cli }}</h4>
+                    <!-- Card informativo -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-4">
+                            <div class="card border-primary h-100 mb-0">
+                                <div class="card-body py-2 text-center">
+                                    <div class="text-muted small">Total</div>
+                                    <h5 class="mb-0">{{ monedaSibol }} {{ formatoDecimal(venta.total) }}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-success h-100 mb-0">
+                                <div class="card-body py-2 text-center">
+                                    <div class="text-muted small">Total pagado</div>
+                                    <h5 class="mb-0 text-success">{{ monedaSibol }} {{ formatoDecimal(totalPagadoCuotas) }}</h5>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card border-danger h-100 mb-0">
+                                <div class="card-body py-2 text-center">
+                                    <div class="text-muted small">Falta pagar</div>
+                                    <h5 class="mb-0 text-danger">{{ monedaSibol }} {{ formatoDecimal(faltaPagarCuotas) }}</h5>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xs-12 col-sm-12 col-md-12 no-padding table-responsive">
+                        <table class="table table-bordered dt-responsive nowrap text-center table-sm" style="border-collapse: collapse; border-spacing: 0; width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th style="text-align: center;">Id</th>
+                                    <th style="text-align: center;">Monto</th>
+                                    <th style="text-align: center;">F. Pago</th>
+                                    <th style="text-align: center;">Estado</th>
+                                    <th style="text-align: center;">Pago</th>
+                                    <th style="text-align: center;">Pagar</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(item, index) in venta.dias_lista" :key="index">
+                                    <td>{{ index + 1 }}</td>
+                                    <td><input type="number" step="0.01" min="0.01" style="width: 110px;" v-model="item.monto" @keypress="onlyNumber" @change="validarMontoCuota(item)" :disabled="item.estado == '1'"></td>
+                                    <td><input type="date" v-model="item.fecha" :disabled="item.estado == '1'"></td>
+                                    <td><div class="btn-group"><span class="badge" :class="claseEstadoCuota(item)">{{ textoEstadoCuota(item) }}</span></div></td>
+                                    <td>
+                                        <select v-model="item.metodo_nombre" :disabled="item.estado == '1'">
+                                            <option disabled value="">Elija Uno</option>
+                                            <option v-for="mp in metodosPagoCxC" :value="mp" :key="mp">{{ mp }}</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group">
+                                            <button v-if="item.estado != '1'" type="button" class="btn btn-success btn-sm" title="Pagar" @click="pagarCuotaVenta(item)"><i class="fa fa-money-bill"></i></button>
+                                            <button v-if="item.estado == '1' && !item.cuotaPagadaOrigen" type="button" class="btn btn-warning btn-sm" title="Deshacer pago" @click="item.estado = '0'"><i class="fa fa-undo"></i></button>
+                                            <button v-if="item.estado != '1'" type="button" class="btn btn-danger btn-sm" title="Quitar cuota" @click="quitardiaspago(index)"><i class="fa fa-times"></i></button>
+                                            <span v-if="item.cuotaPagadaOrigen" class="btn btn-light btn-sm disabled" title="Cobrada en Cuentas por Cobrar antes de convertir el pedido"><i class="fa fa-lock"></i></span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr v-if="venta.dias_lista.length == 0"><td colspan="6">Ningún dato disponible en esta tabla</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" @click="sumardiaspago"><i class="fas fa-plus"></i> Agregar Pago</button>
+                    <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="modal fade" id="modal-dias-pagos" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
@@ -702,7 +796,7 @@ if (isset($_GET["coti"])) {
                 }, ],
                 enProceso: true,
                 usar_scaner: false,
-                apli_igv_is: true,
+                apli_igv_is: false, // se habilita solo para Boleta/Factura (ver watch venta.tipo_doc)
                 listaMedidasCnt: [],
                 producto: {
                     presentacionTmepPO: [],
@@ -730,6 +824,7 @@ if (isset($_GET["coti"])) {
                 usar_precio: '5',
                 productos: [],
                 metodosPago: [],
+                metodosPagoCxC: ["Efectivo", "Plin", "Yape", "BCP", "BBVA"], // mismas opciones que Cuentas por Cobrar
                 precioProductos: [],
                 venta: {
                     cantidadPagos: 0,
@@ -743,7 +838,7 @@ if (isset($_GET["coti"])) {
                     pagacon2: '',
                     pagacon: '',
                     observ: '',
-                    apli_igv: 1,
+                    apli_igv: 0, // Nota de Venta (documento por defecto) va SIN IGV
                     dir_pos: 1,
                     tipo_doc: '6',
                     serie: '',
@@ -761,7 +856,7 @@ if (isset($_GET["coti"])) {
                     tipoventa: 1,
                     total: 0,
                     dias_lista: [],
-                    metodo: 12,
+                    metodo: 12, metodo_nombre: '',
                     metodo2: 12,
                     moneda: 1,
                     tc: '',
@@ -773,6 +868,10 @@ if (isset($_GET["coti"])) {
                 isCoti: <?= isset($_GET['coti']) ? 'true' : 'false' ?>
             },
             watch: {
+                // Nota de Venta va SIN IGV (NO, bloqueado). Boleta/Factura: SI, editable.
+                'venta.tipo_doc'() {
+                    this.ajustarIgvPorDocumento();
+                },
                 'venta.dias_pago'(newValue) {
                     const listD = (newValue + "").split(",");
                     this.dias_lista = [];
@@ -1131,9 +1230,11 @@ if (isset($_GET["coti"])) {
                                         foundMethod = vue.metodosPago.find(m => m.nombre.toUpperCase() === uiItem || m.nombre.toUpperCase().includes(uiItem));
                                     }
                                     c.metodo = foundMethod ? foundMethod.id_metodo_pago : (c.id_metodo_pago || 12);
+                                c.metodo_nombre = vue.metodoCxCDesdeNombre(c.tipo_pago);
                                     // Conservar el estado REAL de la cuota (ahora se puede convertir
                                     // a venta con cuotas pendientes; la deuda sigue en CxC Ventas)
                                     c.estado = (c.estado == '1') ? '1' : '0';
+                                    c.cuotaPagadaOrigen = (c.estado == '1'); // ya cobrada en CxC: no editable
                                     c.cuotaid = c.cuota_coti_id;
                                     return c
                                 })
@@ -1300,7 +1401,12 @@ if (isset($_GET["coti"])) {
 
                             var continuar = true;
                             var mensaje = '';
-                            if (this.isCoti) {
+                            // Venta a crédito (de pedido o directa): las cuotas deben ser > 0 y sumar el total
+                            if ((this.isCoti || this.venta.tipo_pago == '2') && this.venta.dias_lista.some(c => !(parseFloat(c.monto) > 0))) {
+                                continuar = false;
+                                mensaje = 'Hay cuotas con monto 0 o negativo. Corrija o quite esas cuotas en "Cuotas de pago".';
+                            }
+                            if ((this.isCoti || this.venta.tipo_pago == '2') && continuar) {
                                 let totalCalculado = 0;
                                 this.venta.dias_lista.forEach(el => {
                                     totalCalculado += parseFloat(el.monto || 0);
@@ -1308,11 +1414,18 @@ if (isset($_GET["coti"])) {
                                 // Si el total de la venta ya no coincide con las cuotas del pedido (p. ej. se agregó
                                 // un RECOJO en la venta), la diferencia se ajusta automáticamente en la última cuota.
                                 let diferenciaCuotas = parseFloat(this.venta.total) - totalCalculado;
-                                if (Math.abs(diferenciaCuotas) > 0.01 && this.venta.dias_lista.length > 0) {
-                                    let ultimaCuota = this.venta.dias_lista[this.venta.dias_lista.length - 1];
-                                    let nuevoMonto = parseFloat(ultimaCuota.monto || 0) + diferenciaCuotas;
-                                    if (nuevoMonto >= 0) {
-                                        ultimaCuota.monto = nuevoMonto.toFixed(2);
+                                if (Math.abs(diferenciaCuotas) > 0.01) {
+                                    let pendientes = this.venta.dias_lista.filter(c => c.estado != '1');
+                                    if (pendientes.length > 0) {
+                                        let ultimaCuota = pendientes[pendientes.length - 1];
+                                        let nuevoMonto = parseFloat(ultimaCuota.monto || 0) + diferenciaCuotas;
+                                        if (nuevoMonto >= 0) {
+                                            ultimaCuota.monto = nuevoMonto.toFixed(2);
+                                            totalCalculado = parseFloat(this.venta.total);
+                                        }
+                                    } else if (diferenciaCuotas > 0) {
+                                        // todas las cuotas están pagadas: la diferencia queda como nueva cuota pendiente
+                                        this.venta.dias_lista.push({ fecha: this.venta.fecha || this.hoyISO(), monto: diferenciaCuotas.toFixed(2), metodo: 12, metodo_nombre: '', estado: '0' });
                                         totalCalculado = parseFloat(this.venta.total);
                                     }
                                 }
@@ -1373,7 +1486,7 @@ if (isset($_GET["coti"])) {
                                         this.venta.dias_lista.push({
                                             fecha: `${yyyy}-${mm}-${dd}`,
                                             monto: (0).toFixed(2),
-                                            metodo: 12,
+                                            metodo: 12, metodo_nombre: '',
                                             estado: '0'
                                         });
                                     }
@@ -1395,7 +1508,7 @@ if (isset($_GET["coti"])) {
                                     }
                                     data.dias_lista = JSON.stringify(this.venta.dias_lista.map(dd => {
                                         let met = this.metodosPago.find(m => m.id_metodo_pago == dd.metodo);
-                                        dd.metodo_nombre = met ? met.nombre : 'Efectivo';
+                                        dd.metodo_nombre = dd.metodo_nombre || ''; // nombre tal como lo usa Cuentas por Cobrar
                                         return dd;
                                     }))
                                     /*console.log(data);
@@ -1488,12 +1601,7 @@ if (isset($_GET["coti"])) {
                 },
                 onChangeTiDoc(event) {
                     this.buscarSNdoc();
-                    if (this.venta.tipo_doc == 6) {
-                        this.apli_igv_is = false
-                        this.venta.apli_igv = 1
-                    } else {
-                        this.apli_igv_is = true;
-                    }
+                    this.ajustarIgvPorDocumento();
                 },
                 limpiasDatos() {
                     this.listaMedidasCnt = []
@@ -1600,8 +1708,8 @@ if (isset($_GET["coti"])) {
                         this.venta.dias_lista.push({
                             fecha: this.venta.fecha || fechaBase.toISOString().split('T')[0],
                             monto: (this.venta.total > 0 ? this.venta.total : 0).toFixed(2),
-                            metodo: 12,
-                            estado: '1'
+                            metodo: 12, metodo_nombre: '',
+                            estado: '0'
                         });
 
                         // Cuotas 2-5: 0 y +1 día cada una
@@ -1616,19 +1724,25 @@ if (isset($_GET["coti"])) {
                             this.venta.dias_lista.push({
                                 fecha: `${yyyy}-${mm}-${dd}`,
                                 monto: (0).toFixed(2),
-                                metodo: 12,
-                                estado: '1'
+                                metodo: 12, metodo_nombre: '',
+                                estado: '0'
                             });
                         }
                     }
                 },
                 sumardiaspago() {
-                    let fecha_ = new Date()
+                    // Nueva cuota: nace con lo que falta por cubrir (total - suma de TODAS las cuotas,
+                    // pagadas y pendientes); si ya está todo cubierto, no se agrega
+                    let restante = Math.round(this.montoSinCubrirCuotas(null) * 100) / 100;
+                    if (restante <= 0) {
+                        alertAdvertencia("Las cuotas ya cubren el total de la venta (" + this.monedaSibol + " " + this.formatoDecimal(this.venta.total) + ")");
+                        return;
+                    }
                     let data = {
-                        fecha: this.formatDate(fecha_),
-                        monto: 0,
-                        metodo: 12,
-                        estado: '1'
+                        fecha: this.hoyISO(),
+                        monto: restante.toFixed(2),
+                        metodo: 12, metodo_nombre: '',
+                        estado: '0'
                     };
                     this.venta.dias_lista.push(data);
                     /* if (listD.length > 0) {
@@ -1658,6 +1772,77 @@ if (isset($_GET["coti"])) {
                         //console.log(listaTemp);
                     } */
                 },
+                hoyISO() {
+                    // Fecha local de hoy en formato YYYY-MM-DD (formatDate() existente devuelve el dia siguiente)
+                    const d = new Date();
+                    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+                },
+                abrirModalCuotas() {
+                    $("#modal-cuotas-venta").modal("show");
+                },
+                montoSinCubrirCuotas(excluir) {
+                    // Total de la venta menos la suma de todas las cuotas (pagadas y pendientes),
+                    // sin contar la cuota 'excluir' (la que se está editando)
+                    let suma = 0;
+                    this.venta.dias_lista.forEach(c => { if (c !== excluir) suma += parseFloat(c.monto || 0); });
+                    return parseFloat(this.venta.total || 0) - suma;
+                },
+                validarMontoCuota(item) {
+                    // No se permite 0 ni negativo, ni que la suma de cuotas supere el total de la venta
+                    let monto = parseFloat(item.monto);
+                    if (!(monto > 0)) {
+                        item.monto = '';
+                        alertAdvertencia("El monto de la cuota debe ser mayor a 0");
+                        return false;
+                    }
+                    let maximo = Math.round(this.montoSinCubrirCuotas(item) * 100) / 100;
+                    if (monto > maximo + 0.001) {
+                        item.monto = (maximo > 0 ? maximo : 0).toFixed(2);
+                        alertAdvertencia("La suma de las cuotas no puede superar el total de la venta (" + this.monedaSibol + " " + this.formatoDecimal(this.venta.total) + "). Máximo para esta cuota: " + this.monedaSibol + " " + this.formatoDecimal(maximo > 0 ? maximo : 0));
+                        return false;
+                    }
+                    return true;
+                },
+                pagarCuotaVenta(item) {
+                    // Mismo efecto que "Pagar" en Cuentas por Cobrar: la cuota queda PAGADA con su método
+                    if (!(parseFloat(item.monto) > 0)) {
+                        alertAdvertencia("Ingrese el monto de la cuota antes de marcarla como pagada");
+                        return;
+                    }
+                    if (!this.validarMontoCuota(item)) {
+                        return;
+                    }
+                    if (!item.metodo_nombre) {
+                        alertAdvertencia("Elija el método de pago de la cuota");
+                        return;
+                    }
+                    item.estado = '1';
+                },
+                metodoCxCDesdeNombre(nombreBD) {
+                    // Misma regla que Cuentas por Cobrar: coincidencia exacta o que el texto de la BD la contenga
+                    let dbPago = (nombreBD || '').toUpperCase();
+                    let encontrado = this.metodosPagoCxC.find(item => item.toUpperCase() === dbPago || dbPago.includes(item.toUpperCase()));
+                    return encontrado || '';
+                },
+                textoEstadoCuota(item) {
+                    if (item.estado == '1') return 'Pagado';
+                    let hoy = this.hoyISO();
+                    return (item.fecha && item.fecha < hoy) ? 'Vencido' : 'Vigente';
+                },
+                claseEstadoCuota(item) {
+                    if (item.estado == '1') return 'bg-success';
+                    let hoy = this.hoyISO();
+                    return (item.fecha && item.fecha < hoy) ? 'bg-danger' : 'bg-primary';
+                },
+                ajustarIgvPorDocumento() {
+                    // Nota de Venta (6) va SIN IGV y bloqueado; Boleta/Factura con IGV editable
+                    if (this.venta.tipo_doc == 6 || this.venta.tipo_doc == '6') {
+                        this.apli_igv_is = false;
+                        this.venta.apli_igv = 0;
+                    } else {
+                        this.apli_igv_is = true;
+                    }
+                },
                 quitardiaspago(index) {
                     this.venta.dias_lista.splice(index, 1);
                 }
@@ -1686,6 +1871,14 @@ if (isset($_GET["coti"])) {
                     } else {
                         return ''
                     }
+                },
+                totalPagadoCuotas() {
+                    let t = 0;
+                    this.venta.dias_lista.forEach(c => { if (c.estado == '1') t += parseFloat(c.monto || 0); });
+                    return t;
+                },
+                faltaPagarCuotas() {
+                    return parseFloat(this.venta.total || 0) - this.totalPagadoCuotas;
                 },
                 totalValorListaDias() {
                     var total_ = 0;

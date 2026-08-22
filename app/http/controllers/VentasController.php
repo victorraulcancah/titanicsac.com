@@ -1125,6 +1125,10 @@ class VentasController extends Controller
         $listaPagos = json_decode($_POST['dias_lista'], true);
 
         if ($c_venta->insertar()) {
+            // Avanzar el correlativo del documento: la siguiente venta usará numero + 1
+            // (antes no se incrementaba y todas las ventas salían con el mismo número)
+            $c_tido->incrementarNumero();
+
             $pagos = $_POST["pagos"];
             foreach ($pagos as $i => $pago) {
                 $npago = $i + 1;
@@ -1163,32 +1167,48 @@ class VentasController extends Controller
                 // bajo el nuevo modelo la deuda de una venta a crédito nace pendiente
                 // y se cobra desde Cuentas por Cobrar de Ventas.
                 $estadoP = (isset($diaP['estado']) && $diaP['estado'] == '1') ? '1' : '0';
-                
+
+                // Si la cuota viene del pedido y YA estaba cobrada en Cuentas por Cobrar, el cobro
+                // conserva su fecha, usuario y método ORIGINALES (no "hoy" ni quien convierte):
+                // así Arqueo diario y Mis cobros no mueven ni duplican ese cobro.
+                $cuotaId = (isset($_POST['cotiId']) && isset($diaP['cuotaid'])) ? trim($diaP['cuotaid']) : '';
+                $cuotaOrig = null;
+                if (!empty($cuotaId)) {
+                    $rsOrig = $c_venta->exeSQL("SELECT estado, tipo_pago, id_usuario, fecha_pago_real FROM cuotas_cotizacion WHERE cuota_coti_id='{$cuotaId}'");
+                    $cuotaOrig = $rsOrig ? $rsOrig->fetch_assoc() : null;
+                }
+                $yaPagadaEnCxC = ($cuotaOrig && $cuotaOrig['estado'] == '1' && !empty($cuotaOrig['fecha_pago_real']));
+                if ($yaPagadaEnCxC) {
+                    $estadoP = '1';
+                    $usuarioCobro = !empty($cuotaOrig['id_usuario']) ? $cuotaOrig['id_usuario'] : $id_usuario_pago;
+                    $fechaCobro = $cuotaOrig['fecha_pago_real'];
+                    $metodoCobro = !empty($cuotaOrig['tipo_pago']) ? $cuotaOrig['tipo_pago'] : $diaP['metodo_nombre'];
+                } else {
+                    $usuarioCobro = $id_usuario_pago;
+                    $fechaCobro = $fecha_actual_pago;
+                    $metodoCobro = $diaP['metodo_nombre'];
+                }
+
                 // Insertar la cuota en la venta
                 $sql = "insert into dias_ventas set id_venta='{$c_venta->getIdVenta()}',
-                    monto='{$diaP['monto']}',fecha='{$diaP['fecha']}',estado='$estadoP', tipo_pago='{$diaP['metodo_nombre']}', id_usuario='$id_usuario_pago', fecha_pago_real='$fecha_actual_pago'";
+                    monto='{$diaP['monto']}',fecha='{$diaP['fecha']}',estado='$estadoP', tipo_pago='{$metodoCobro}', id_usuario='$usuarioCobro', fecha_pago_real=" . ($estadoP === '1' ? "'$fechaCobro'" : "NULL") . "";
                 $c_venta->exeSQL($sql);
 
                 // Sincronizar con cuotas_cotizacion
                 if (isset($_POST['cotiId'])) {
-                    $cuotaId = isset($diaP['cuotaid']) ? trim($diaP['cuotaid']) : '';
-                    $existeCoti = 0;
-                    if (!empty($cuotaId)) {
-                        $checkS = $c_venta->exeSQL("SELECT count(*) as c FROM cuotas_cotizacion WHERE cuota_coti_id='{$cuotaId}'")->fetch_assoc();
-                        if ($checkS) {
-                            $existeCoti = $checkS['c'];
+                    if ($cuotaOrig) {
+                        if ($yaPagadaEnCxC) {
+                            // Cobro original: no se toca (conserva fecha, usuario y método del cobro en CxC)
+                        } else {
+                            // Actualizar la cuota que se preservó (respetando su estado real:
+                            // ahora se puede convertir a venta con cuotas pendientes)
+                            $sqlCotiInst = "UPDATE cuotas_cotizacion SET monto='{$diaP['monto']}', fecha='{$diaP['fecha']}', estado='$estadoP', tipo_pago='{$diaP['metodo_nombre']}', id_usuario='$id_usuario_pago', fecha_pago_real=" . ($estadoP === '1' ? "'$fecha_actual_pago'" : "NULL") . " WHERE cuota_coti_id='{$cuotaId}'";
+                            $c_venta->exeSQL($sqlCotiInst);
                         }
-                    }
-
-                    if ($existeCoti > 0) {
-                        // Actualizar la cuota que se preservó (respetando su estado real:
-                        // ahora se puede convertir a venta con cuotas pendientes)
-                        $sqlCotiInst = "UPDATE cuotas_cotizacion SET monto='{$diaP['monto']}', fecha='{$diaP['fecha']}', estado='$estadoP', tipo_pago='{$diaP['metodo_nombre']}', id_usuario='$id_usuario_pago', fecha_pago_real='$fecha_actual_pago' WHERE cuota_coti_id='{$cuotaId}'";
-                        $c_venta->exeSQL($sqlCotiInst);
                     } else {
                         // Insertar nueva cuota conservando su estado real (pagada o pendiente)
                         $sqlCotiInst = "insert into cuotas_cotizacion set id_coti='{$_POST['cotiId']}',
-                            monto='{$diaP['monto']}',fecha='{$diaP['fecha']}',estado='$estadoP', tipo_pago='{$diaP['metodo_nombre']}', id_usuario='$id_usuario_pago', fecha_pago_real='$fecha_actual_pago'";
+                            monto='{$diaP['monto']}',fecha='{$diaP['fecha']}',estado='$estadoP', tipo_pago='{$diaP['metodo_nombre']}', id_usuario='$id_usuario_pago', fecha_pago_real=" . ($estadoP === '1' ? "'$fecha_actual_pago'" : "NULL") . "";
                         $c_venta->exeSQL($sqlCotiInst);
                     }
                 }

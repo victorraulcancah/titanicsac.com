@@ -348,7 +348,7 @@
                     let data = res;
 
                     if (Array.isArray(data)) {
-                        if (window.SOLO_VENTAS) data = data.filter(r => r.tipo_co === 'v');
+                        if (window.SOLO_VENTAS) data = data.filter(r => r.tipo_co === 'v' && parseFloat(r.saldo || 0) > 0.009); // solo ventas con saldo pendiente
                         const datatable = $('#datatable').DataTable();
                         datatable.clear();
                         datatable.rows.add(data).draw();
@@ -459,7 +459,7 @@
                 const datosFiltrados = data.filter(row => {
                     // Modo "solo ventas": la vista Cuentas por Cobrar de VENTAS reutiliza esta
                     // pantalla mostrando únicamente deudas de ventas (tipo_co='v')
-                    if (window.SOLO_VENTAS && row.tipo_co !== 'v') return false;
+                    if (window.SOLO_VENTAS && (row.tipo_co !== 'v' || !(parseFloat(row.saldo || 0) > 0.009))) return false; // solo ventas con saldo pendiente
                     const total = parseFloat(row.total);
                     const pagado = parseFloat(row.pagado);
                     const diferencia = Math.abs(total - pagado);
