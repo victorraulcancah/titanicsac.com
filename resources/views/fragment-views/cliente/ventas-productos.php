@@ -144,7 +144,7 @@ if (isset($_GET["coti"])) {
                                             <label for="example-text-input" class=" col-form-label">Cantidad</label>
 
                                             <div class="input-group">
-                                                <input @keypress="onlyNumber" required v-model="producto.cantidad" class="form-control text-center" type="text" placeholder="0" id="example-text-input">
+                                                <input @keypress="onlyNumberNeg" required v-model="producto.cantidad" class="form-control text-center" type="text" placeholder="0" id="example-text-input">
                                                 <select v-model="producto.presentacion" class="form-select">
                                                     <option v-for="(item ) in listaOpcionesPResen" :value="item.cod">{{item.nom}}</option>
                                                 </select>
@@ -212,11 +212,11 @@ if (isset($_GET["coti"])) {
                                 <tbody>
                                     <tr v-for="(item,index) in productos">
                                         <td>{{index+1}}</td>
-                                        <td>{{item.descripcion}}</td>
-                                        <td><span v-if="!item.edicion">{{item.cantidad}}</span><input v-if="item.edicion" v-model="item.cantidad"></td>
+                                        <td>{{item.descripcion}} <span v-if="item.cantidad < 0" class="badge bg-danger" title="Recojo: producto que el cliente devuelve. Regresa al stock y se descuenta de la venta">RECOJO</span></td>
+                                        <td><span v-if="!item.edicion" :class="{'text-danger fw-bold': item.cantidad < 0}">{{cantidadFinal(item)}}</span><input v-if="item.edicion" v-model="item.cantidad"></td>
                                         <td><span v-if="!item.edicion">{{formatoDecimal(item.precioVenta)}}</span><input v-if="item.edicion" v-model="item.precioVenta"></td>
-                                        <td>{{formatoDecimal(item.precioVenta*item.cantidad)}}</td>
-                                        <td>{{formatoDecimal(item.precioVenta*item.cantidad)}}</td>
+                                        <td :class="{'text-danger fw-bold': item.cantidad < 0}">{{formatoDecimal(item.precioVenta*item.cantidad)}}</td>
+                                        <td :class="{'text-danger fw-bold': item.cantidad < 0}">{{formatoDecimal(item.precioVenta*item.cantidad)}}</td>
                                         <td><button @click="eliminarItemPro(index)" type="button" class="btn btn-danger btn-sm">
                                                 <i class="fa fa-times"></i>
                                             </button>
@@ -1238,6 +1238,24 @@ if (isset($_GET["coti"])) {
                         }
                     });
                 },
+                onlyNumberNeg($event) {
+                    // Como onlyNumber, pero admite el signo "-" al inicio. Cantidad NEGATIVA = RECOJO
+                    // (producto que el cliente devuelve): regresa al stock, entra al kardex como
+                    // ingreso 'Recojo' y se descuenta del total de la venta. SOLO en ventas, no en pedidos.
+                    let keyCode = ($event.keyCode ? $event.keyCode : $event.which);
+                    let val = ($event.target.value || '') + '';
+                    if (keyCode === 45 && $event.target.selectionStart === 0 && !val.includes('-')) return;
+                    if ((keyCode < 48 || keyCode > 57) && keyCode !== 46) {
+                        $event.preventDefault();
+                    }
+                },
+                cantidadFinal(item) {
+                    // Resultado final: cantidad × unidad derivada (ej. 3 × 3 = 9 KG).
+                    // Los productos del pedido traen 'presenta_cnt'; los agregados aquí, 'presentacionCnt'.
+                    let derivada = parseFloat(item.presenta_cnt ?? item.presentacionCnt ?? 1) || 1;
+                    let total = parseFloat(item.cantidad || 0) * derivada;
+                    return this.formatoDecimal(total) + ' ' + (item.medida || '');
+                },
                 onlyNumber($event) {
                     //console.log($event.keyCode); //keyCodes value
                     let keyCode = ($event.keyCode ? $event.keyCode : $event.which);
@@ -1287,6 +1305,17 @@ if (isset($_GET["coti"])) {
                                 this.venta.dias_lista.forEach(el => {
                                     totalCalculado += parseFloat(el.monto || 0);
                                 });
+                                // Si el total de la venta ya no coincide con las cuotas del pedido (p. ej. se agregó
+                                // un RECOJO en la venta), la diferencia se ajusta automáticamente en la última cuota.
+                                let diferenciaCuotas = parseFloat(this.venta.total) - totalCalculado;
+                                if (Math.abs(diferenciaCuotas) > 0.01 && this.venta.dias_lista.length > 0) {
+                                    let ultimaCuota = this.venta.dias_lista[this.venta.dias_lista.length - 1];
+                                    let nuevoMonto = parseFloat(ultimaCuota.monto || 0) + diferenciaCuotas;
+                                    if (nuevoMonto >= 0) {
+                                        ultimaCuota.monto = nuevoMonto.toFixed(2);
+                                        totalCalculado = parseFloat(this.venta.total);
+                                    }
+                                }
                                 if (Math.abs(totalCalculado - this.venta.total) > 0.01) {
                                     continuar = false;
                                     mensaje = 'El total de las cuotas (' + totalCalculado.toFixed(2) + ') debe ser igual al total de la venta (' + parseFloat(this.venta.total).toFixed(2) + ')';
@@ -1535,7 +1564,9 @@ if (isset($_GET["coti"])) {
                         const prod = {
                             ...this.producto
                         }
-                        prod.precioVenta = prod.precioVenta * (prod.cantidad * prod.presentacionCnt)
+                        // Precio por presentación (igual que en pedidos). No se multiplica por la cantidad:
+                        // el signo vive solo en la cantidad (negativa = RECOJO) y el parcial es precio × cantidad.
+                        prod.precioVenta = prod.precioVenta * prod.presentacionCnt
 
                         this.productos.push(prod)
                         this.limpiasDatos();

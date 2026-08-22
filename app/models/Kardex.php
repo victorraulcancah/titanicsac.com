@@ -80,12 +80,19 @@ class Kardex
      * El registro NUNCA se elimina: queda visible en el kardex como anulado, y el
      * flujo que anula (ej. anulación de venta) registra su propio movimiento inverso.
      */
-    public function anularPorReferencia($referencia, $tipo = 'e')
+    public function anularPorReferencia($referencia, $tipo = 'e', $motivo = null)
     {
         try {
             $refEsc = $this->conectar->real_escape_string($referencia);
             $tipo = ($tipo === 'i') ? 'i' : 'e';
-            return $this->conectar->query("UPDATE almacen_kardex SET estado='0' WHERE referencia='$refEsc' AND tipo='$tipo' AND estado='1'");
+            // $motivo (opcional): limitar la anulación a un motivo concreto, p. ej. solo los
+            // ingresos 'Recojo' de una venta sin tocar los de 'Anulacion/Edicion de venta'.
+            $condMotivo = '';
+            if ($motivo !== null && $motivo !== '') {
+                $motivoEsc = $this->conectar->real_escape_string($motivo);
+                $condMotivo = " AND motivo_id IN (SELECT motivo_id FROM almacen_motivos WHERE nombre='$motivoEsc' AND tipo='$tipo')";
+            }
+            return $this->conectar->query("UPDATE almacen_kardex SET estado='0' WHERE referencia='$refEsc' AND tipo='$tipo' AND estado='1'$condMotivo");
         } catch (Throwable $e) {
             error_log('KARDEX ERROR (anular): ' . $e->getMessage());
             return false;

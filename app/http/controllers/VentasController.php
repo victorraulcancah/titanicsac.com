@@ -355,6 +355,7 @@ class VentasController extends Controller
         header('Cache-Control: no-store, no-cache, must-revalidate');
         $table_data = new TableData();
         $where = ($_SESSION['rol'] == 1) ? "" : "where sucursal = {$_SESSION["sucursal"]} ";
+        ob_start();
         $table_data->get("view_ventas", "id_venta", [
             "cod_v",
             "sn_v",
@@ -367,6 +368,33 @@ class VentasController extends Controller
             "estado",
             "id_venta",
         ], $where);
+        $salida = ob_get_clean();
+
+        // Columna extra "Pedido": número del pedido (cotización) del que se generó cada venta.
+        // Se agrega al final de cada fila (índice 10) sin modificar la vista view_ventas.
+        // Se toma el JSON desde '{"sEcho"' para ignorar cualquier aviso de PHP impreso antes.
+        $posJson = strpos($salida, '{"sEcho"');
+        $json = ($posJson !== false) ? json_decode(substr($salida, $posJson), true) : null;
+        if (is_array($json) && !empty($json['aaData'])) {
+            $ids = array_values(array_filter(array_map(function ($fila) { return intval($fila[9]); }, $json['aaData'])));
+            $pedidos = [];
+            if (!empty($ids)) {
+                $rs = $this->conexion->query("SELECT v.id_venta, co.numero FROM ventas v
+                    INNER JOIN cotizaciones co ON co.cotizacion_id = v.id_coti
+                    WHERE v.id_venta IN (" . implode(',', $ids) . ")");
+                if ($rs) {
+                    foreach ($rs as $r) {
+                        $pedidos[$r['id_venta']] = $r['numero'];
+                    }
+                }
+            }
+            foreach ($json['aaData'] as &$fila) {
+                $fila[] = isset($pedidos[intval($fila[9])]) ? $pedidos[intval($fila[9])] : '';
+            }
+            unset($fila);
+            $salida = json_encode($json);
+        }
+        echo $salida;
 
         //$this->venta->setIdEmpresa($_SESSION['id_empresa']);
         //$lista = $this->venta->verFilas("202202");
@@ -774,6 +802,7 @@ class VentasController extends Controller
             # Las salidas anteriores de esta venta quedan ANULADAS en el kardex (no se borran);
             # el reingreso las compensa y los productos finales vuelven a salir como 'Venta'.
             $c_kardex->anularPorReferencia('venta:' . $_POST['idVenta'], 'e');
+            $c_kardex->anularPorReferencia('venta:' . $_POST['idVenta'], 'i', 'Recojo');
             foreach ($detalle_venta as $detalle) {
                 $presenta_cnt = $detalle['presenta_cnt'];
                 $presenta_cnt = ($presenta_cnt == 0) ? 1 : $presenta_cnt;
@@ -782,8 +811,13 @@ class VentasController extends Controller
                 $sql = "update productos set  cantidad= cantidad+{$cantidad} where id_producto='{$detalle['id_producto']}' ";
                 //echo $sql;
                 $this->conexion->query($sql);
-                # Kardex: reingreso por edición de venta (los productos nuevos volverán a salir como 'Venta')
-                $c_kardex->registrar($detalle['id_producto'], 'i', 'Edicion de venta', $cantidad, 'venta:' . $_POST['idVenta']);
+                # Kardex: reversa por edición de venta (el nuevo detalle volverá a registrarse como 'Venta'/'Recojo').
+                # Línea positiva => reingreso; línea NEGATIVA (recojo) => el UPDATE la restó, es una salida.
+                if ($cantidad < 0) {
+                    $c_kardex->registrar($detalle['id_producto'], 'e', 'Edicion de venta', abs($cantidad), 'venta:' . $_POST['idVenta'], 'Reversa de recojo por edición');
+                } else {
+                    $c_kardex->registrar($detalle['id_producto'], 'i', 'Edicion de venta', $cantidad, 'venta:' . $_POST['idVenta']);
+                }
             }
             # primero recorremos los nuevos productos
             foreach ($array_detalle as $key => $a_detalle) {

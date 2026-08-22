@@ -74,6 +74,7 @@
                                 <th>Sunat</th>
                                 <th>Estado</th>
                                 <th>Detalles</th>
+                                <th>Pedido</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -713,6 +714,13 @@
                 [0, "desc"]
             ],
             columnDefs: [{
+                    targets: 10,
+                    render(data, type, row) {
+                        // Pedido (cotización) del que se generó la venta
+                        return data ? '<span class="badge bg-info">#' + data + '</span>' : '<span class="text-muted">-</span>';
+                    }
+                    },
+                    {
                     targets: 0,
                     render(data, type, row) {
                         return "<span style='color: white'>" + data + "</span>";

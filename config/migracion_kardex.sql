@@ -21,6 +21,9 @@ INSERT IGNORE INTO almacen_motivos (nombre, tipo, fijo) VALUES
 ('Venta',             'e', '1'),
 ('Anulacion de venta','i', '1'),
 ('Edicion de venta',  'i', '1'),
+('Edicion de venta',  'e', '1'),
+('Anulacion de venta','e', '1'),
+('Recojo',            'i', '1'),
 ('Devolucion',        'i', '1'),
 ('Anulacion de cuadre','i','1'),
 ('Anulacion de cuadre','e','1'),
@@ -34,7 +37,8 @@ INSERT IGNORE INTO almacen_motivos (nombre, tipo, fijo) VALUES
 -- 'Compra' pasa a llamarse 'Recepcion de compra' (el stock entra al recepcionar, no al comprar)
 UPDATE almacen_motivos SET nombre='Recepcion de compra' WHERE nombre='Compra' AND tipo='i';
 UPDATE almacen_motivos SET fijo='1' WHERE nombre='Devolucion' AND tipo='i';
-UPDATE almacen_motivos SET activo='0' WHERE nombre='Recojo' AND tipo='i';
+-- 'Recojo' es motivo de SISTEMA: lo genera una linea con cantidad NEGATIVA en una VENTA (regresa al stock)
+UPDATE almacen_motivos SET activo='1', fijo='1' WHERE nombre='Recojo' AND tipo='i';
 
 -- ============================================================
 -- RECEPCIÓN DE MERCADERÍA (compras)

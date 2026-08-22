@@ -80,6 +80,8 @@ class VentaAnulada
         # Kardex: las salidas originales de la venta NO se eliminan; quedan marcadas como ANULADAS
         require_once __DIR__ . '/Kardex.php';
         (new Kardex($this->conectar))->anularPorReferencia('venta:' . $this->id_venta, 'e');
+        # ... y también los ingresos por RECOJO (líneas con cantidad negativa) de esta venta
+        (new Kardex($this->conectar))->anularPorReferencia('venta:' . $this->id_venta, 'i', 'Recojo');
 
         foreach ($listaVP as $item){
             $presenta_cnt = ($item['presenta_cnt'] && $item['presenta_cnt']) ? $item['presenta_cnt'] : 1;
@@ -88,9 +90,14 @@ class VentaAnulada
             $sql="update productos set  cantidad= cantidad+'{$cantidad}' where id_producto='{$item['id_producto']}' ";
             //echo $sql;
             $this->conectar->query($sql);
-            # Kardex: ingreso por anulación de venta (motivo fijo de sistema)
+            # Kardex: anulación de venta (motivo fijo de sistema). Línea positiva => vuelve a INGRESAR;
+            # línea NEGATIVA (recojo) => el UPDATE de arriba la restó del stock, así que es una SALIDA.
             require_once __DIR__ . '/Kardex.php';
-            (new Kardex($this->conectar))->registrar($item['id_producto'], 'i', 'Anulacion de venta', $cantidad, 'venta:' . $this->id_venta);
+            if ($cantidad < 0) {
+                (new Kardex($this->conectar))->registrar($item['id_producto'], 'e', 'Anulacion de venta', abs($cantidad), 'venta:' . $this->id_venta, 'Reversa de recojo por anulación');
+            } else {
+                (new Kardex($this->conectar))->registrar($item['id_producto'], 'i', 'Anulacion de venta', $cantidad, 'venta:' . $this->id_venta);
+            }
             #
             if($venta['id_tido']==6){
                 $sql_1="

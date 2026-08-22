@@ -216,9 +216,16 @@ class ProductoVenta
         $sql = "update productos set cantidad = cantidad - $cntRestante where id_producto='$this->id_producto'";
         $this->conectar->query($sql);
 
-        // Kardex: registrar la salida por venta (motivo fijo de sistema)
+        // Kardex (motivos fijos de sistema):
+        //  - cantidad positiva: SALIDA por 'Venta'
+        //  - cantidad NEGATIVA: RECOJO (el cliente devuelve producto). El UPDATE de arriba
+        //    ya lo SUMÓ al stock (cantidad - negativo); aquí queda como INGRESO 'Recojo'.
         require_once __DIR__ . '/Kardex.php';
-        (new Kardex($this->conectar))->registrar($this->id_producto, 'e', 'Venta', $cntRestante, 'venta:' . $this->id_venta);
+        if ($cntRestante < 0) {
+            (new Kardex($this->conectar))->registrar($this->id_producto, 'i', 'Recojo', abs($cntRestante), 'venta:' . $this->id_venta, 'Recojo en venta #' . $this->id_venta);
+        } else {
+            (new Kardex($this->conectar))->registrar($this->id_producto, 'e', 'Venta', $cntRestante, 'venta:' . $this->id_venta);
+        }
 
         return $result;
     }
