@@ -288,7 +288,7 @@
                             class: "text-center",
                             render: function (data) {
                                 return data === '0'
-                                    ? '<span class="badge bg-secondary">ANULADO</span>'
+                                    ? '<span class="badge bg-danger">ANULADO</span>'
                                     : '<span class="badge bg-primary">VIGENTE</span>';
                             }
                         },
