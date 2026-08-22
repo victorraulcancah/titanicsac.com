@@ -46,6 +46,18 @@ class FragmentController extends Controller
                 $vendedor_data = $result_vendedor->fetch_assoc();
                 $vendedor = !empty($vendedor_data['vendedor']) ? $vendedor_data['vendedor'] : 'Sin vendedor';
 
+                // Obtener el cliente de la cotización
+                $sql_cliente = "SELECT cl.documento, cl.datos FROM cotizaciones c
+                                LEFT JOIN clientes cl ON cl.id_cliente = c.id_cliente
+                                WHERE c.cotizacion_id = ?";
+                $stmt_cliente = $conectar->prepare($sql_cliente);
+                $stmt_cliente->bind_param('i', $idCoti);
+                $stmt_cliente->execute();
+                $cliente_data = $stmt_cliente->get_result()->fetch_assoc();
+                $cliente = !empty($cliente_data['datos'])
+                    ? trim($cliente_data['documento'] . ' | ' . $cliente_data['datos'], ' |')
+                    : 'Sin cliente';
+
                 $sql_cuotas = "
             SELECT 
                 cc.monto, 
@@ -90,6 +102,7 @@ class FragmentController extends Controller
                             <li><strong>Número:</strong> {$cotizacion['numero']}</li>
                             <li><strong>Fecha:</strong> {$cotizacion['fecha']}</li>
                             <li><strong>Total:</strong> S/ {$cotizacion['total']}</li>
+                            <li><strong>Cliente:</strong> {$cliente}</li>
                             <li><strong>Vendedor:</strong> {$vendedor}</li>
                         </ul>
                         
