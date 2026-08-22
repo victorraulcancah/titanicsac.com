@@ -104,13 +104,8 @@ class ProductoCompra
         //echo $sql;
         $result = $this->conectar->query($sql);
 
-        $sql = "update productos set cantidad = cantidad+$this->cantidad where id_producto='$this->id_producto'";
-        //echo $sql;
-        $this->conectar->query($sql);
-
-        // Kardex: registrar el ingreso por compra (motivo fijo de sistema)
-        require_once __DIR__ . '/Kardex.php';
-        (new Kardex($this->conectar))->registrar($this->id_producto, 'i', 'Compra', $this->cantidad, 'compra:' . $this->id_compra);
+        // El stock NO se modifica aquí: entra únicamente al RECEPCIONAR la compra
+        // (ComprasController::recepcionRegistrar), que es quien registra el kardex.
 
         return $result;
     }

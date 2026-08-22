@@ -459,17 +459,8 @@ class Compra
             //echo $this->conectar->error;
         }
     }
-    public function updateStock($cantidad, $idProducto)
-    {
-        $sql = "update productos set cantidad = cantidad+$cantidad where id_producto=$idProducto";
-        $result = $this->conectar->query($sql);
-        if ($result) {
-            // Kardex: ingreso por compra (motivo fijo de sistema)
-            require_once __DIR__ . '/Kardex.php';
-            (new Kardex($this->conectar))->registrar($idProducto, 'i', 'Compra', $cantidad, 'compra');
-            return $result;
-        }
-    }
+    // updateStock() eliminado: el stock de una compra NUNCA entra al registrarla.
+    // Entra únicamente al RECEPCIONAR (ComprasController::recepcionRegistrar).
     public function insertProductosCompras($id_producto, $id_compra, $cantidad, $precio)
     {
         $sql = "INSERT INTO productos_compras(id_producto,id_compra,cantidad,precio)
