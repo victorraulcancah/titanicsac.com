@@ -72,7 +72,8 @@
 </div>
 
 <script>
-    let tablaKardex = null;
+    // 'var' (no let/const) a nivel de <script>: el fragmento se reinyecta al navegar por AJAX y un 'let' global no puede redeclararse.
+    var tablaKardex = null;
 
     function pintarKardex(data) {
         tablaKardex = $("#tablaKardex").DataTable({

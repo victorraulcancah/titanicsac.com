@@ -210,8 +210,9 @@
 </div>
 
 <script>
-    let idCompraRecepcion = null;
-    let esAdminCompras = <?= (isset($_SESSION['rol']) && $_SESSION['rol'] == 1) ? 1 : 0 ?>;
+    // 'var' (no let/const) a nivel de <script>: el fragmento se reinyecta al navegar por AJAX y un 'let' global no puede redeclararse.
+    var idCompraRecepcion = null;
+    var esAdminCompras = <?= (isset($_SESSION['rol']) && $_SESSION['rol'] == 1) ? 1 : 0 ?>;
 
     function cargarRecepcion(id, mostrarModal) {
         $("#loader-menor").show();

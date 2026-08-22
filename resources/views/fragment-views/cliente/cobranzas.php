@@ -241,9 +241,10 @@
     window.SOLO_VENTAS = (window.__COBRANZAS_VENTAS__ === true);
     window.__COBRANZAS_VENTAS__ = false;
 
-    let id_usuario = <?= $_SESSION['usuario_fac'] ?>;
-    let id_rol = <?= $_SESSION['rol'] ?>;
-    let botonDetalle = null
+    // 'var' (no let/const) a nivel de <script>: el fragmento se reinyecta al navegar por AJAX y un 'let' global no puede redeclararse.
+    var id_usuario = <?= $_SESSION['usuario_fac'] ?>;
+    var id_rol = <?= $_SESSION['rol'] ?>;
+    var botonDetalle = null
 
     function pdf() {
         const data = {

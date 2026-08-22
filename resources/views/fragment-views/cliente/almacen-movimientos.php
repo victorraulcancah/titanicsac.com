@@ -172,8 +172,9 @@
 </div>
 
 <script>
-    let motivosAlmacen = [];
-    let esAdminAlmacen = <?= (isset($_SESSION['rol']) && $_SESSION['rol'] == 1) ? 1 : 0 ?>;
+    // 'var' (no let/const) a nivel de <script>: el fragmento se reinyecta al navegar por AJAX y un 'let' global no puede redeclararse.
+    var motivosAlmacen = [];
+    var esAdminAlmacen = <?= (isset($_SESSION['rol']) && $_SESSION['rol'] == 1) ? 1 : 0 ?>;
 
     function llenarMotivos() {
         const tipo = $("#tipoMovimiento").val();

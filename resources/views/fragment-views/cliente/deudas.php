@@ -193,7 +193,8 @@
 </div>
 
 <script>
-    let botonDetalle = null
+    // 'var' (no let/const) a nivel de <script>: el fragmento se reinyecta al navegar por AJAX y un 'let' global no puede redeclararse.
+    var botonDetalle = null
 
     function sumarTotal() {
         let total = 0;

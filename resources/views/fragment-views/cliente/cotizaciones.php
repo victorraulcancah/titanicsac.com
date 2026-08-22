@@ -305,15 +305,13 @@
 <!-- Script JavaScript para cambiar el estilo de los botones al hacer clic -->
 <script>
     // Evitar conflictos de variables en navegación AJAX
-    if (typeof window.botones_cotizaciones === 'undefined') {
-        window.botones_cotizaciones = document.querySelectorAll('.btn-custom');
-        window.botones_cotizaciones.forEach(boton => {
-            boton.addEventListener('click', () => {
-                window.botones_cotizaciones.forEach(b => b.classList.remove('active'));
-                boton.classList.add('active');
-            });
+    // Se re-consulta en cada carga del fragmento: los botones son nodos nuevos cada vez.
+    document.querySelectorAll('.btn-custom').forEach(boton => {
+        boton.addEventListener('click', () => {
+            document.querySelectorAll('.btn-custom').forEach(b => b.classList.remove('active'));
+            boton.classList.add('active');
         });
-    }
+    });
 </script>
 
 <iframe id="printFrame" style="display:none;"></iframe>
@@ -324,7 +322,9 @@
     if (typeof window.rol_usuario_cotizaciones === 'undefined') {
         window.rol_usuario_cotizaciones = <?php echo $_SESSION["rol"]; ?>;
     }
-    let rol_usuario = window.rol_usuario_cotizaciones;
+    // 'var' y no 'let': este fragmento se vuelve a inyectar al navegar por AJAX; un 'let' global
+    // lanzaria \"Identifier 'rol_usuario' has already been declared\" y el script entero dejaria de ejecutarse.
+    var rol_usuario = window.rol_usuario_cotizaciones;
     $(document).ready(function () {
         var tabla = $("#datatable-c").DataTable({
             "processing": true,
