@@ -213,7 +213,7 @@ if (isset($_GET["coti"])) {
                                     <tr v-for="(item,index) in productos">
                                         <td>{{index+1}}</td>
                                         <td>{{item.descripcion}} <span v-if="item.cantidad < 0" class="badge bg-danger" title="Recojo: producto que el cliente devuelve. Regresa al stock y se descuenta de la venta">RECOJO</span></td>
-                                        <td><span v-if="!item.edicion" :class="{'text-danger fw-bold': item.cantidad < 0}">{{cantidadFinal(item)}}</span><input v-if="item.edicion" v-model="item.cantidad"></td>
+                                        <td><span v-if="!item.edicion" :class="{'text-danger fw-bold': item.cantidad < 0}">{{cantidadFinal(item)}}</span><span v-if="item.edicion" class="text-nowrap"><input type="number" step="0.01" style="width: 90px;" :value="cantidadFinalNum(item)" @keypress="onlyNumberNeg" @change="setCantidadFinal(item, $event.target.value)" title="Cantidad final a entregar (ej. 4.8 kilos)"> {{ item.medida }}</span></td>
                                         <td><span v-if="!item.edicion">{{formatoDecimal(item.precioVenta)}}</span><input v-if="item.edicion" v-model="item.precioVenta"></td>
                                         <td :class="{'text-danger fw-bold': item.cantidad < 0}">{{formatoDecimal(item.precioVenta*item.cantidad)}}</td>
                                         <td :class="{'text-danger fw-bold': item.cantidad < 0}">{{formatoDecimal(item.precioVenta*item.cantidad)}}</td>
@@ -1348,6 +1348,27 @@ if (isset($_GET["coti"])) {
                     if (keyCode === 45 && $event.target.selectionStart === 0 && !val.includes('-')) return;
                     if ((keyCode < 48 || keyCode > 57) && keyCode !== 46) {
                         $event.preventDefault();
+                    }
+                },
+                cantidadFinalNum(item) {
+                    // Cantidad final numérica (cantidad × unidad derivada), para el input de edición
+                    let derivada = parseFloat(item.presenta_cnt ?? item.presentacionCnt ?? 1) || 1;
+                    return Math.round(parseFloat(item.cantidad || 0) * derivada * 100) / 100;
+                },
+                setCantidadFinal(item, valor) {
+                    // El usuario edita la cantidad FINAL (ej. 4.8 kilos); internamente se guarda
+                    // cantidad = final / unidad derivada (la tabla guarda hasta 2 decimales).
+                    let v = parseFloat(valor);
+                    if (isNaN(v) || v === 0) {
+                        alertAdvertencia("Ingrese una cantidad distinta de 0");
+                        return;
+                    }
+                    let derivada = parseFloat(item.presenta_cnt ?? item.presentacionCnt ?? 1) || 1;
+                    let cantidad = Math.round((v / derivada) * 100) / 100;
+                    item.cantidad = cantidad;
+                    let finalReal = Math.round(cantidad * derivada * 100) / 100;
+                    if (Math.abs(finalReal - v) > 0.005) {
+                        alertAdvertencia("Con la presentación de este producto (x" + derivada + ") la cantidad se ajustó a " + this.formatoDecimal(finalReal) + " " + (item.medida || ''));
                     }
                 },
                 cantidadFinal(item) {

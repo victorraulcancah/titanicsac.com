@@ -88,3 +88,10 @@ CREATE TABLE IF NOT EXISTS almacen_kardex (
     KEY idx_producto_fecha (id_producto, fecha),
     KEY idx_motivo (motivo_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- STOCK CON DECIMALES (ventas por peso: ej. 2.80 kg)
+-- productos.cantidad era INT y redondeaba el stock al vender fracciones.
+-- MODIFY conserva los valores actuales; es seguro ejecutarlo mas de una vez.
+-- ============================================================
+ALTER TABLE productos MODIFY cantidad DECIMAL(12,2) NOT NULL DEFAULT 0;
