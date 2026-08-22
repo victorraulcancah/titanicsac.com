@@ -95,3 +95,7 @@ CREATE TABLE IF NOT EXISTS almacen_kardex (
 -- MODIFY conserva los valores actuales; es seguro ejecutarlo mas de una vez.
 -- ============================================================
 ALTER TABLE productos MODIFY cantidad DECIMAL(12,2) NOT NULL DEFAULT 0;
+
+-- Cantidad interna de la linea de venta con 6 decimales: al entregar menos de una presentacion
+-- (ej. 11.5 kg de bolsas de 3 kg = 3.833333 bolsas) el total y los kilos salen exactos.
+ALTER TABLE productos_ventas MODIFY cantidad DECIMAL(12,6) NOT NULL DEFAULT 0;

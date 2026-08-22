@@ -1365,15 +1365,16 @@ if (isset($_GET["coti"])) {
                     return Math.round(parseFloat(item.cantidad || 0) * derivada * 100) / 100;
                 },
                 setCantidadFinal(item, valor) {
-                    // El usuario edita la cantidad FINAL (ej. 4.8 kilos); internamente se guarda
-                    // cantidad = final / unidad derivada (la tabla guarda hasta 2 decimales).
+                    // El usuario edita la cantidad FINAL (ej. 11.5 kilos); internamente se guarda
+                    // cantidad = final / unidad derivada con 6 decimales (productos_ventas.cantidad DECIMAL(12,6)),
+                    // así 11.5 kg en bolsas de 3 kg = 3.833333 bolsas -> 11.50 kg y el total exactos.
                     let v = parseFloat(valor);
                     if (isNaN(v) || v === 0) {
                         alertAdvertencia("Ingrese una cantidad distinta de 0");
                         return;
                     }
                     let derivada = parseFloat(item.presenta_cnt ?? item.presentacionCnt ?? 1) || 1;
-                    let cantidad = Math.round((v / derivada) * 100) / 100;
+                    let cantidad = Math.round((v / derivada) * 1000000) / 1000000;
                     item.cantidad = cantidad;
                     let finalReal = Math.round(cantidad * derivada * 100) / 100;
                     if (Math.abs(finalReal - v) > 0.005) {
