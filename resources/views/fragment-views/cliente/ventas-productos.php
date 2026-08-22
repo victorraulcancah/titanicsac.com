@@ -872,6 +872,13 @@ if (isset($_GET["coti"])) {
                 'venta.tipo_doc'() {
                     this.ajustarIgvPorDocumento();
                 },
+                // Cada vez que cambia el total (cantidad editada, producto agregado/quitado, recojo)
+                // las cuotas pendientes se reajustan para seguir cuadrando con el total
+                'venta.total'() {
+                    if (this.venta.dias_lista.length > 0) {
+                        this.sincronizarCuotasConTotal();
+                    }
+                },
                 'venta.dias_pago'(newValue) {
                     const listD = (newValue + "").split(",");
                     this.dias_lista = [];
@@ -1238,6 +1245,8 @@ if (isset($_GET["coti"])) {
                                     c.cuotaid = c.cuota_coti_id;
                                     return c
                                 })
+                                // Si el total ya no coincide con las cuotas del pedido, se reajustan desde el inicio
+                                vue.sincronizarCuotasConTotal();
                             }, 1000)
                             vue.buscarSNdoc();
 
@@ -1428,28 +1437,13 @@ if (isset($_GET["coti"])) {
                                 mensaje = 'Hay cuotas con monto 0 o negativo. Corrija o quite esas cuotas en "Cuotas de pago".';
                             }
                             if ((this.isCoti || this.venta.tipo_pago == '2') && continuar) {
+                                // Último reajuste de las cuotas pendientes al total (normalmente ya se hizo al
+                                // cambiar cantidades/productos, ver watch 'venta.total')
+                                this.sincronizarCuotasConTotal();
                                 let totalCalculado = 0;
                                 this.venta.dias_lista.forEach(el => {
                                     totalCalculado += parseFloat(el.monto || 0);
                                 });
-                                // Si el total de la venta ya no coincide con las cuotas del pedido (p. ej. se agregó
-                                // un RECOJO en la venta), la diferencia se ajusta automáticamente en la última cuota.
-                                let diferenciaCuotas = parseFloat(this.venta.total) - totalCalculado;
-                                if (Math.abs(diferenciaCuotas) > 0.01) {
-                                    let pendientes = this.venta.dias_lista.filter(c => c.estado != '1');
-                                    if (pendientes.length > 0) {
-                                        let ultimaCuota = pendientes[pendientes.length - 1];
-                                        let nuevoMonto = parseFloat(ultimaCuota.monto || 0) + diferenciaCuotas;
-                                        if (nuevoMonto >= 0) {
-                                            ultimaCuota.monto = nuevoMonto.toFixed(2);
-                                            totalCalculado = parseFloat(this.venta.total);
-                                        }
-                                    } else if (diferenciaCuotas > 0) {
-                                        // todas las cuotas están pagadas: la diferencia queda como nueva cuota pendiente
-                                        this.venta.dias_lista.push({ fecha: this.venta.fecha || this.hoyISO(), monto: diferenciaCuotas.toFixed(2), metodo: 12, metodo_nombre: '', estado: '0' });
-                                        totalCalculado = parseFloat(this.venta.total);
-                                    }
-                                }
                                 if (Math.abs(totalCalculado - this.venta.total) > 0.01) {
                                     continuar = false;
                                     mensaje = 'El total de las cuotas (' + totalCalculado.toFixed(2) + ') debe ser igual al total de la venta (' + parseFloat(this.venta.total).toFixed(2) + ')';
@@ -1799,7 +1793,40 @@ if (isset($_GET["coti"])) {
                     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
                 },
                 abrirModalCuotas() {
+                    this.sincronizarCuotasConTotal();
                     $("#modal-cuotas-venta").modal("show");
+                },
+                sincronizarCuotasConTotal() {
+                    // Mantiene las cuotas PENDIENTES cuadradas con el total de la venta cada vez que
+                    // este cambia (editar cantidad, agregar/quitar producto, recojo). Las cuotas ya
+                    // pagadas no se tocan. Si falta dinero por cubrir, se suma a la última pendiente
+                    // (o se crea una); si sobra, se descuenta de las pendientes empezando por la última.
+                    if (!(this.isCoti || this.venta.tipo_pago == '2')) return;
+                    let total = parseFloat(this.venta.total || 0);
+                    let suma = 0;
+                    this.venta.dias_lista.forEach(c => { suma += parseFloat(c.monto || 0); });
+                    let dif = Math.round((total - suma) * 100) / 100;
+                    if (Math.abs(dif) <= 0.01) return;
+                    let pendientes = this.venta.dias_lista.filter(c => c.estado != '1');
+                    if (pendientes.length === 0) {
+                        if (dif > 0) {
+                            this.venta.dias_lista.push({ fecha: this.venta.fecha || this.hoyISO(), monto: dif.toFixed(2), metodo: 12, metodo_nombre: '', estado: '0' });
+                        }
+                        return; // si sobra y todo está pagado, no hay nada que ajustar (se avisa al guardar)
+                    }
+                    for (let i = pendientes.length - 1; i >= 0 && Math.abs(dif) > 0.005; i--) {
+                        let c = pendientes[i];
+                        let nuevo = Math.round((parseFloat(c.monto || 0) + dif) * 100) / 100;
+                        if (nuevo >= 0) {
+                            c.monto = nuevo.toFixed(2);
+                            dif = 0;
+                        } else {
+                            c.monto = '0.00'; // esta cuota se consume entera; el resto se descuenta de la anterior
+                            dif = nuevo;
+                        }
+                    }
+                    // las cuotas pendientes que quedaron en 0 se eliminan
+                    this.venta.dias_lista = this.venta.dias_lista.filter(c => c.estado == '1' || parseFloat(c.monto || 0) > 0);
                 },
                 montoSinCubrirCuotas(excluir) {
                     // Total de la venta menos la suma de todas las cuotas (pagadas y pendientes),
