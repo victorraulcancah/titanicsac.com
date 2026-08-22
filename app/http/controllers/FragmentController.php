@@ -194,6 +194,18 @@ class FragmentController extends Controller
     {
         return $this->view("fragment-views/cliente/cobranzas");
     }
+    public function cobranzasVentas()
+    {
+        return $this->view("fragment-views/cliente/cobranzas-ventas");
+    }
+    public function almacenKardex()
+    {
+        return $this->view("fragment-views/cliente/almacen-kardex");
+    }
+    public function almacenMovimientos()
+    {
+        return $this->view("fragment-views/cliente/almacen-movimientos");
+    }
     public function cotizacionesAdd()
     {
         return $this->view("fragment-views/cliente/cotizaciones-add");

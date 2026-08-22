@@ -23,11 +23,12 @@ class DevolucionesController extends Controller
             p.codsunat AS 'codigo',
             u.usuario,
             CONCAT(dnv.signo,dnv.cantidad) AS cantidad,
-            dnv.fecha
+            dnv.fecha,
+            dnv.destino
             FROM devoluciones_nv dnv
             INNER JOIN ventas v ON v.id_venta = dnv.id_venta
             INNER JOIN productos p ON p.id_producto = dnv.id_producto
-            INNER JOIN usuarios u ON u.usuario_id = dnv.id_usuario  
+            INNER JOIN usuarios u ON u.usuario_id = dnv.id_usuario
             ORDER BY dnv.fecha DESC
             ";
             $fila = mysqli_query($this->conectar, $sql);
@@ -36,7 +37,50 @@ class DevolucionesController extends Controller
             return json_encode([]);
         }
     }
-    
+
+    /**
+     * Define el destino de una devolución (solo admin):
+     * 'a' = regresa al almacén (el stock ya fue devuelto por el flujo de venta; solo se marca)
+     * 'p' = pérdida (producto malogrado): se descuenta del stock y se registra en el kardex.
+     */
+    public function definirDestino(){
+        if (!isset($_SESSION['rol']) || $_SESSION['rol'] != 1) {
+            return json_encode(["res" => false, "msg" => "Solo administradores pueden definir el destino"]);
+        }
+        $id = isset($_POST['id_devolucion']) ? intval($_POST['id_devolucion']) : 0;
+        $destino = (isset($_POST['destino']) && $_POST['destino'] === 'p') ? 'p' : 'a';
+        if ($id <= 0) {
+            return json_encode(["res" => false, "msg" => "Devolución inválida"]);
+        }
+
+        $res = $this->conectar->query("SELECT id_producto, cantidad, destino FROM devoluciones_nv WHERE id_devolucion = $id");
+        if (!$res || $res->num_rows == 0) {
+            return json_encode(["res" => false, "msg" => "Devolución no encontrada"]);
+        }
+        $dev = $res->fetch_assoc();
+        if ($dev['destino'] !== null && $dev['destino'] !== '') {
+            return json_encode(["res" => false, "msg" => "Esta devolución ya tiene destino definido"]);
+        }
+
+        require_once "app/models/Kardex.php";
+        $kardex = new Kardex($this->conectar);
+        $cantidad = abs(floatval($dev['cantidad']));
+
+        if ($destino === 'p') {
+            // Producto malogrado: sale del stock (el flujo de venta ya lo había reingresado)
+            $ok = $this->conectar->query("UPDATE productos SET cantidad = cantidad - $cantidad WHERE id_producto = '{$dev['id_producto']}'");
+            if (!$ok) {
+                return json_encode(["res" => false, "msg" => "No se pudo descontar el stock"]);
+            }
+            $kardex->registrar($dev['id_producto'], 'e', 'Perdida', $cantidad, 'devolucion:' . $id, 'Producto malogrado (devolución)');
+        }
+        // Si regresa al almacén ('a') no se toca stock ni kardex: el reingreso ya quedó
+        // registrado por el flujo de venta (Edicion/Anulacion de venta); solo se marca el destino.
+
+        $this->conectar->query("UPDATE devoluciones_nv SET destino = '$destino' WHERE id_devolucion = $id");
+        return json_encode(["res" => true, "msg" => $destino === 'p' ? "Registrado como pérdida" : "Confirmado regreso al almacén"]);
+    }
+
 
     public function exportarExcel(){
         // Eliminar cualquier salida previa

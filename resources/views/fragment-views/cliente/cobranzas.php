@@ -236,6 +236,11 @@
 </div>
 
 <script>
+    // El wrapper cobranzas-ventas.php activa este flag; se consume en cada carga
+    // para que la pantalla normal de Cobranzas nunca quede filtrada por error.
+    window.SOLO_VENTAS = (window.__COBRANZAS_VENTAS__ === true);
+    window.__COBRANZAS_VENTAS__ = false;
+
     let id_usuario = <?= $_SESSION['usuario_fac'] ?>;
     let id_rol = <?= $_SESSION['rol'] ?>;
     let botonDetalle = null
@@ -342,6 +347,7 @@
                     let data = res;
 
                     if (Array.isArray(data)) {
+                        if (window.SOLO_VENTAS) data = data.filter(r => r.tipo_co === 'v');
                         const datatable = $('#datatable').DataTable();
                         datatable.clear();
                         datatable.rows.add(data).draw();
@@ -450,6 +456,9 @@
             success: function (data) {
                 // Filtrar los datos para incluir solo los que no están totalmente pagados
                 const datosFiltrados = data.filter(row => {
+                    // Modo "solo ventas": la vista Cuentas por Cobrar de VENTAS reutiliza esta
+                    // pantalla mostrando únicamente deudas de ventas (tipo_co='v')
+                    if (window.SOLO_VENTAS && row.tipo_co !== 'v') return false;
                     const total = parseFloat(row.total);
                     const pagado = parseFloat(row.pagado);
                     const diferencia = Math.abs(total - pagado);

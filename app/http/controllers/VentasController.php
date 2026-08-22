@@ -346,7 +346,11 @@ class VentasController extends Controller
 
     public function listarVentas()
     {
+        // Limpiar cualquier output previo
+        if (ob_get_level()) ob_clean();
+        
         require_once "app/clases/serverside.php";
+        header('Content-Type: application/json');
         header('Pragma: no-cache');
         header('Cache-Control: no-store, no-cache, must-revalidate');
         $table_data = new TableData();
@@ -765,6 +769,11 @@ class VentasController extends Controller
             $i = 0;
             $arr_product_id_cambios = [];
             #retornamos el stock al inventario
+            require_once "app/models/Kardex.php";
+            $c_kardex = new Kardex($this->conexion);
+            # Las salidas anteriores de esta venta quedan ANULADAS en el kardex (no se borran);
+            # el reingreso las compensa y los productos finales vuelven a salir como 'Venta'.
+            $c_kardex->anularPorReferencia('venta:' . $_POST['idVenta'], 'e');
             foreach ($detalle_venta as $detalle) {
                 $presenta_cnt = $detalle['presenta_cnt'];
                 $presenta_cnt = ($presenta_cnt == 0) ? 1 : $presenta_cnt;
@@ -773,6 +782,8 @@ class VentasController extends Controller
                 $sql = "update productos set  cantidad= cantidad+{$cantidad} where id_producto='{$detalle['id_producto']}' ";
                 //echo $sql;
                 $this->conexion->query($sql);
+                # Kardex: reingreso por edición de venta (los productos nuevos volverán a salir como 'Venta')
+                $c_kardex->registrar($detalle['id_producto'], 'i', 'Edicion de venta', $cantidad, 'venta:' . $_POST['idVenta']);
             }
             # primero recorremos los nuevos productos
             foreach ($array_detalle as $key => $a_detalle) {
@@ -963,31 +974,9 @@ class VentasController extends Controller
             return;
         }
 
-        // VALIDACIÓN: Si viene de cotización, verificar que esté completamente pagada
-        if (isset($_POST['cotiId']) && !empty($_POST['cotiId'])) {
-            $cotiId = $_POST['cotiId'];
-            $sqlValidarPago = "SELECT 
-                SUM(CASE WHEN estado='1' THEN monto ELSE 0 END) as total_pagado,
-                SUM(monto) as total_cuotas,
-                COUNT(*) as total_registros,
-                COUNT(CASE WHEN estado='1' THEN 1 END) as cuotas_pagadas
-                FROM cuotas_cotizacion 
-                WHERE id_coti = '$cotiId'";
-            
-            $resultValidar = $this->conexion->query($sqlValidarPago);
-            if ($resultValidar) {
-                $dataPago = $resultValidar->fetch_assoc();
-                
-                // Verificar si hay cuotas pendientes de pago
-                if ($dataPago['total_registros'] > 0 && $dataPago['cuotas_pagadas'] < $dataPago['total_registros']) {
-                    echo json_encode([
-                        'res' => false,
-                        'msj' => 'No se puede crear la venta. La cotización tiene pagos pendientes. Debe completar todos los pagos en Cobranzas antes de convertirla en venta.'
-                    ]);
-                    return;
-                }
-            }
-        }
+        // 2026-07-18: Se eliminó la validación que exigía tener todas las cuotas de la
+        // cotización pagadas antes de convertirla en venta. Ahora se puede convertir con
+        // pagos pendientes: la deuda se sigue cobrando desde la cuenta por cobrar de ventas.
 
         $dataSend = [];
         $dataSend["certGlobal"] = false;
@@ -1136,8 +1125,10 @@ class VentasController extends Controller
                     continue; // Saltar cuotas vacías (como las generadas en 0.00 por defecto)
                 }
 
-                // Preserve estado from frontend
-                $estadoP = isset($diaP['estado']) ? $diaP['estado'] : '1';
+                // Conservar el estado real de la cuota. Si no llega, se asume PENDIENTE ('0'):
+                // bajo el nuevo modelo la deuda de una venta a crédito nace pendiente
+                // y se cobra desde Cuentas por Cobrar de Ventas.
+                $estadoP = (isset($diaP['estado']) && $diaP['estado'] == '1') ? '1' : '0';
                 
                 // Insertar la cuota en la venta
                 $sql = "insert into dias_ventas set id_venta='{$c_venta->getIdVenta()}',
@@ -1156,13 +1147,14 @@ class VentasController extends Controller
                     }
 
                     if ($existeCoti > 0) {
-                        // Actualizar la cuota que se preservó (la que históricamente ya estaba pagada en la cotización)
-                        $sqlCotiInst = "UPDATE cuotas_cotizacion SET monto='{$diaP['monto']}', fecha='{$diaP['fecha']}', estado='1', tipo_pago='{$diaP['metodo_nombre']}', id_usuario='$id_usuario_pago', fecha_pago_real='$fecha_actual_pago' WHERE cuota_coti_id='{$cuotaId}'";
+                        // Actualizar la cuota que se preservó (respetando su estado real:
+                        // ahora se puede convertir a venta con cuotas pendientes)
+                        $sqlCotiInst = "UPDATE cuotas_cotizacion SET monto='{$diaP['monto']}', fecha='{$diaP['fecha']}', estado='$estadoP', tipo_pago='{$diaP['metodo_nombre']}', id_usuario='$id_usuario_pago', fecha_pago_real='$fecha_actual_pago' WHERE cuota_coti_id='{$cuotaId}'";
                         $c_venta->exeSQL($sqlCotiInst);
                     } else {
-                        // Insertar nueva cuota (las que se borraron por ser impagas, o las nuevas añadidas)
+                        // Insertar nueva cuota conservando su estado real (pagada o pendiente)
                         $sqlCotiInst = "insert into cuotas_cotizacion set id_coti='{$_POST['cotiId']}',
-                            monto='{$diaP['monto']}',fecha='{$diaP['fecha']}',estado='1', tipo_pago='{$diaP['metodo_nombre']}', id_usuario='$id_usuario_pago', fecha_pago_real='$fecha_actual_pago'";
+                            monto='{$diaP['monto']}',fecha='{$diaP['fecha']}',estado='$estadoP', tipo_pago='{$diaP['metodo_nombre']}', id_usuario='$id_usuario_pago', fecha_pago_real='$fecha_actual_pago'";
                         $c_venta->exeSQL($sqlCotiInst);
                     }
                 }

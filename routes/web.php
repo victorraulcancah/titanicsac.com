@@ -79,6 +79,9 @@ Route::postBase("/compras","FragmentController@compras");
 Route::postBase("/compras/add","FragmentController@comprasAdd");
 
 Route::postBase("/cobranzas","FragmentController@cobranzas");
+Route::postBase("/cobranzas/ventas","FragmentController@cobranzasVentas");
+Route::postBase("/almacen/kardex","FragmentController@almacenKardex");
+Route::postBase("/almacen/movimientos","FragmentController@almacenMovimientos");
 Route::postBase("/deudas", "FragmentController@deudas");
 #
 Route::get("/reporte/deudas/cobros","ReportesDeudaController@reporteCobros");

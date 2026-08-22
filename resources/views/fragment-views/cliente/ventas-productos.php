@@ -1131,7 +1131,10 @@ if (isset($_GET["coti"])) {
                                         foundMethod = vue.metodosPago.find(m => m.nombre.toUpperCase() === uiItem || m.nombre.toUpperCase().includes(uiItem));
                                     }
                                     c.metodo = foundMethod ? foundMethod.id_metodo_pago : (c.id_metodo_pago || 12);
-                                    c.estado = '1';
+                                    // Conservar el estado REAL de la cuota (ahora se puede convertir
+                                    // a venta con cuotas pendientes; la deuda sigue en CxC Ventas)
+                                    c.estado = (c.estado == '1') ? '1' : '0';
+                                    c.cuotaid = c.cuota_coti_id;
                                     return c
                                 })
                             }, 1000)
@@ -1328,7 +1331,8 @@ if (isset($_GET["coti"])) {
 
                                     this.venta.dias_lista.push({
                                         fecha: `${yyyy1}-${mm1}-${dd1}`,
-                                        monto: (this.venta.total > 0 ? this.venta.total : 0).toFixed(2)
+                                        monto: (this.venta.total > 0 ? this.venta.total : 0).toFixed(2),
+                                        estado: '0'
                                     });
 
                                     // Cuotas 2-5
@@ -1341,7 +1345,7 @@ if (isset($_GET["coti"])) {
                                             fecha: `${yyyy}-${mm}-${dd}`,
                                             monto: (0).toFixed(2),
                                             metodo: 12,
-                                            estado: '1'
+                                            estado: '0'
                                         });
                                     }
                                 }

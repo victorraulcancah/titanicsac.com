@@ -108,6 +108,10 @@ class ProductoCompra
         //echo $sql;
         $this->conectar->query($sql);
 
+        // Kardex: registrar el ingreso por compra (motivo fijo de sistema)
+        require_once __DIR__ . '/Kardex.php';
+        (new Kardex($this->conectar))->registrar($this->id_producto, 'i', 'Compra', $this->cantidad, 'compra:' . $this->id_compra);
+
         return $result;
     }
 
