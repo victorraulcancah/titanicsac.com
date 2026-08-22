@@ -206,7 +206,7 @@ console.log('DEBUG: Valor del input #cotizacion:', $('#cotizacion').val());
                                                     <td> <span v-if="!item.editable">{{item.cantidad}} {{nombreMedida(item.presentacion)}} / {{item.presentacionCnt}}{{item.medida}}</span>
                                                         <template  v-if="item.editable">
                                                             <div class="input-group">
-                                                                <input class="form-control" v-model="item.cantidad">
+                                                                <input class="form-control" v-model="item.cantidad" @keypress="onlyNumber" @change="validarCantidadPedido(item)">
                                                                 <span class="input-group-text" id="basic-addon1">{{nombreMedida(item.presentacion)}} / {{item.presentacionCnt}}{{item.medida}}</span>
 
 
@@ -646,6 +646,13 @@ console.log('DEBUG: Valor del input #cotizacion:', $('#cotizacion').val());
                     this.venta.dias_lista = []
                     this.venta.dias_pago = ''
                 },
+                validarCantidadPedido(item) {
+                    // Al editar en la tabla: si queda negativo o cero, se vuelve a 1 y se avisa.
+                    if (!(parseFloat(item.cantidad) > 0)) {
+                        item.cantidad = 1;
+                        alertAdvertencia("En pedidos no se permiten cantidades negativas ni cero. Los recojos se registran al convertir el pedido en venta.");
+                    }
+                },
                 onlyNumber($event) {
                     //console.log($event.keyCode); //keyCodes value
                     let keyCode = ($event.keyCode ? $event.keyCode : $event.which);
@@ -718,6 +725,11 @@ console.log('DEBUG: Valor del input #cotizacion:', $('#cotizacion').val());
                 guardarVenta() {
                     if (this.productos.length > 0) {
 
+                        // En PEDIDOS no se aceptan cantidades negativas ni cero (el recojo solo existe en VENTAS)
+                        if (this.productos.some(p => !(parseFloat(p.cantidad) > 0))) {
+                            alertAdvertencia("En pedidos no se permiten cantidades negativas ni cero. Los recojos se registran al convertir el pedido en venta.");
+                            return;
+                        }
                         var continuar = true;
                         var mensaje = '';
 
