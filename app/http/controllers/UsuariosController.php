@@ -6,6 +6,7 @@ class UsuariosController extends Controller
 {
 
     private $cliente;
+    private $conectar;
 
     public function __construct()
     {

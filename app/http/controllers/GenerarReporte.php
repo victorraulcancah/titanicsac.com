@@ -9,7 +9,7 @@ require_once 'utils/lib/exel/vendor/autoload.php';
 class GenerarReporte extends Controller
 {
     private $conexion;
-    /*  private $mpdf; */
+    private $mpdf;
 
     public function __construct()
     {

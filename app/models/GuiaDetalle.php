@@ -2,6 +2,7 @@
 
 class GuiaDetalle
 {
+    private $conectar;
     private $guia_detalle_id;
     private $id_guia;
     private $id_producto;

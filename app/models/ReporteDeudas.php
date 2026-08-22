@@ -2,6 +2,7 @@
 
 class ReporteDeudas
 {
+    private $conectar;
     public function __construct()
     {
         $this->conectar = (new Conexion())->getConexion();

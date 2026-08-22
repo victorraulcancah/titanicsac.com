@@ -6,6 +6,7 @@ class RutaVendedor
     private $id;
     private $id_ruta;
     private $id_usuario;
+    private $conectar;
 
     /**
      * RutaVendedor constructor.
@@ -65,7 +66,7 @@ class RutaVendedor
     
     public function obtenerDatos()
     {
-        $sql = "select * from rutas_vendedor group by id_ruta;";
+        $sql = "SELECT DISTINCT id_ruta FROM rutas_vendedor;";
         $result = $this->conectar->query($sql);
         $resultSet = array();
         while ($row = $result->fetch_assoc()) {

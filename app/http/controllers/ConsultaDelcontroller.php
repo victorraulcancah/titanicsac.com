@@ -10,6 +10,7 @@ require_once "app/clases/serverside.php";
 class ConsultaDelcontroller extends Controller
 {
     private $conexion;
+    private $mpdf;
     public function __construct()
     {
         $this->conexion = (new Conexion())->getConexion();

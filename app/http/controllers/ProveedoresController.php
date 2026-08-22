@@ -12,6 +12,7 @@
         private $cliente;
         private $models;
         private $conectar;
+        private $modelo;
         public function __construct() {
             $this->modelo = new models();
             $this->conectar = (new Conexion())->getConexion();
