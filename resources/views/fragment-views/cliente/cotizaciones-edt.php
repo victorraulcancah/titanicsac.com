@@ -203,7 +203,7 @@ console.log('DEBUG: Valor del input #cotizacion:', $('#cotizacion').val());
                                                     <td>{{index+1}}</td>
                                                     <td>{{item.codigo}}</td>
                                                     <td>{{item.descripcion}}</td>
-                                                    <td> <span v-if="!item.editable">{{item.cantidad}} {{nombreMedida(item.presentacion)}} / {{item.presentacionCnt}}{{item.medida}}</span>
+                                                    <td> <span v-if="!item.editable">{{item.cantidad}}</span>
                                                         <template  v-if="item.editable">
                                                             <div class="input-group">
                                                                 <input class="form-control" v-model="item.cantidad">
