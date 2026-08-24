@@ -6,6 +6,88 @@ $datoEmpresa = $conexion->query("select * from empresas where id_empresa='{$_SES
 $igv_empresa = $datoEmpresa['igv'];
 ?>
 <script src="<?= URL::to('public/js/qrCode.min.js') ?>"></script>
+<style>
+    /* Responsivo en móvil: la página nunca se desplaza en horizontal; las tablas anchas
+       se desplazan dentro de su contenedor y los inputs se apilan legibles. */
+    @media (max-width: 767.98px) {
+        #container-vue {
+            overflow-x: hidden;
+        }
+        #container-vue .card-body {
+            padding: .75rem;
+        }
+        /* Cantidad: el grupo (cantidad + presentación + "De" + medida) se parte en dos filas */
+        #container-vue .input-group.flex-nowrap {
+            flex-wrap: wrap !important;
+        }
+        #container-vue .input-group.flex-nowrap > .form-control,
+        #container-vue .input-group.flex-nowrap > .form-select {
+            min-width: 5.5rem;
+        }
+        /* Etiquetas de formulario alineadas a la izquierda (en móvil no hay columna de label) */
+        #container-vue .control-label,
+        #container-vue .col-form-label {
+            width: 100%;
+            text-align: left !important;
+        }
+        /* Las tablas dentro de modales se desplazan solas, sin empujar el modal */
+        .modal .table-responsive {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Cuotas de pago: en móvil cada cuota se muestra como tarjeta apilada
+           (sin desplazamiento horizontal). La etiqueta sale del atributo data-label. */
+        #modal-cuotas-venta .table-responsive {
+            overflow-x: visible;
+        }
+        .tabla-cuotas {
+            min-width: 0 !important;
+            border: 0 !important;
+        }
+        .tabla-cuotas thead {
+            display: none;
+        }
+        .tabla-cuotas tbody tr {
+            display: block;
+            border: 1px solid #dee2e6;
+            border-radius: .5rem;
+            padding: .25rem .5rem;
+            margin-bottom: .75rem;
+            background: #fff;
+        }
+        .tabla-cuotas tbody td {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .75rem;
+            border: 0 !important;
+            border-bottom: 1px solid #f1f1f1 !important;
+            padding: .45rem .1rem;
+            text-align: right;
+            white-space: normal;
+        }
+        .tabla-cuotas tbody td:last-child {
+            border-bottom: 0 !important;
+        }
+        .tabla-cuotas tbody td::before {
+            content: attr(data-label);
+            font-weight: 600;
+            color: #6c757d;
+            text-align: left;
+            flex: 0 0 auto;
+        }
+        .tabla-cuotas tbody td > input,
+        .tabla-cuotas tbody td > select {
+            width: auto !important;
+            max-width: 60%;
+        }
+        /* Suma del pedido: que no desborde con montos largos */
+        #lbl_suma_pedido {
+            font-size: 1.75rem;
+            word-break: break-word;
+        }
+    }
+</style>
 <div class="page-title-box">
     <div class="row align-items-center">
         <div class="col-md-8">
@@ -131,8 +213,8 @@ if (isset($_GET["coti"])) {
                                     </div>
                                 </div>
                                 <div class="form-group ">
-                                    <div class="row" style="margin-right: 0;">
-                                        <div class="row  col-lg-3">
+                                    <div class="row g-2">
+                                        <div class="col-12 col-lg-3">
                                             <label for="example-text-input" class="col-form-label">Stock Actual</label>
 
                                             <div class="input-group">
@@ -140,10 +222,10 @@ if (isset($_GET["coti"])) {
                                                 <span class="input-group-text" id="basic-addon1">{{producto.medida}}</span>
                                             </div>
                                         </div>
-                                        <div class="row  col-lg-5">
+                                        <div class="col-12 col-lg-5">
                                             <label for="example-text-input" class=" col-form-label">Cantidad</label>
 
-                                            <div class="input-group">
+                                            <div class="input-group flex-nowrap">
                                                 <input @keypress="onlyNumberNeg" required v-model="producto.cantidad" class="form-control text-center" type="text" placeholder="0" id="example-text-input">
                                                 <select v-model="producto.presentacion" class="form-select">
                                                     <option v-for="(item ) in listaOpcionesPResen" :value="item.cod">{{item.nom}}</option>
@@ -162,7 +244,7 @@ if (isset($_GET["coti"])) {
 
 
                                         </div>
-                                        <div class="row  col-lg-3">
+                                        <div class="col-12 col-lg-3">
                                             <label for="example-text-input" class=" col-form-label">Precio</label>
                                             <div class="input-group">
                                                 <select name="" id="" class="form-control" v-model="producto.precio_unidad">
@@ -170,8 +252,8 @@ if (isset($_GET["coti"])) {
                                                 </select>
                                             </div>
                                         </div>
-                                        <div class="col-lg-2">
-                                            <button id="submit-a-product" type="submit" class="btn btn-success"><i class="fa fa-check"></i> Agregar</button>
+                                        <div class="col-12 col-lg-2 d-flex align-items-end">
+                                            <button id="submit-a-product" type="submit" class="btn btn-success w-100 w-lg-auto"><i class="fa fa-check"></i> Agregar</button>
                                         </div>
                                     </div>
 
@@ -197,7 +279,9 @@ if (isset($_GET["coti"])) {
                                     </select>
                                 </div>
                             </div>
-                            <table class="table">
+                            <!-- table-responsive: en móvil la tabla se desplaza en horizontal en vez de romper la página -->
+                            <div class="table-responsive">
+                            <table class="table" style="min-width: 640px;">
                                 <thead>
                                     <tr>
                                         <th>Item</th>
@@ -226,6 +310,7 @@ if (isset($_GET["coti"])) {
                                     </tr>
                                 </tbody>
                             </table>
+                            </div>
                         </div>
 
                     </div>
@@ -450,7 +535,7 @@ if (isset($_GET["coti"])) {
 
     <!-- Modal: cuotas de pago de la venta a crédito (mismo diseño que Cuentas por Cobrar de Ventas) -->
     <div class="modal fade" id="modal-cuotas-venta" tabindex="-1" aria-labelledby="modalCuotasVentaLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-lg modal-fullscreen-md-down modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                     <h1 class="modal-title fs-5" id="modalCuotasVentaLabel">Cuotas de pago</h1>
@@ -485,8 +570,9 @@ if (isset($_GET["coti"])) {
                             </div>
                         </div>
                     </div>
+                    <!-- tabla-cuotas: en móvil cada cuota se apila como tarjeta (ver CSS al inicio de la vista) -->
                     <div class="col-xs-12 col-sm-12 col-md-12 no-padding table-responsive">
-                        <table class="table table-bordered dt-responsive nowrap text-center table-sm" style="border-collapse: collapse; border-spacing: 0; width: 100%;">
+                        <table class="table table-bordered dt-responsive nowrap text-center table-sm tabla-cuotas" style="border-collapse: collapse; border-spacing: 0; width: 100%; min-width: 620px;">
                             <thead>
                                 <tr>
                                     <th style="text-align: center;">Id</th>
@@ -499,17 +585,17 @@ if (isset($_GET["coti"])) {
                             </thead>
                             <tbody>
                                 <tr v-for="(item, index) in venta.dias_lista" :key="index">
-                                    <td>{{ index + 1 }}</td>
-                                    <td><input type="number" step="0.01" min="0.01" style="width: 110px;" v-model="item.monto" @keypress="onlyNumber" @change="validarMontoCuota(item)" :disabled="item.estado == '1'"></td>
-                                    <td><input type="date" v-model="item.fecha" :disabled="item.estado == '1'"></td>
-                                    <td><div class="btn-group"><span class="badge" :class="claseEstadoCuota(item)">{{ textoEstadoCuota(item) }}</span></div></td>
-                                    <td>
+                                    <td data-label="Cuota">{{ index + 1 }}</td>
+                                    <td data-label="Monto"><input type="number" step="0.01" min="0.01" style="width: 110px;" v-model="item.monto" @keypress="onlyNumber" @change="validarMontoCuota(item)" :disabled="item.estado == '1'"></td>
+                                    <td data-label="F. Pago"><input type="date" v-model="item.fecha" :disabled="item.estado == '1'"></td>
+                                    <td data-label="Estado"><div class="btn-group"><span class="badge" :class="claseEstadoCuota(item)">{{ textoEstadoCuota(item) }}</span></div></td>
+                                    <td data-label="Pago">
                                         <select v-model="item.metodo_nombre" :disabled="item.estado == '1'">
                                             <option disabled value="">Elija Uno</option>
                                             <option v-for="mp in metodosPagoCxC" :value="mp" :key="mp">{{ mp }}</option>
                                         </select>
                                     </td>
-                                    <td>
+                                    <td data-label="Pagar">
                                         <div class="btn-group">
                                             <button v-if="item.estado != '1'" type="button" class="btn btn-success btn-sm" title="Pagar" @click="pagarCuotaVenta(item)"><i class="fa fa-money-bill"></i></button>
                                             <button v-if="item.estado == '1' && !item.cuotaPagadaOrigen" type="button" class="btn btn-warning btn-sm" title="Deshacer pago" @click="item.estado = '0'"><i class="fa fa-undo"></i></button>
@@ -532,7 +618,7 @@ if (isset($_GET["coti"])) {
     </div>
 
     <div class="modal fade" id="modal-dias-pagos" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="exampleModalLabel">Dias de Pagos</h5>
@@ -610,7 +696,7 @@ if (isset($_GET["coti"])) {
     </div>
 
     <div class="modal fade" id="modalImprimirComprobante" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="exampleModalLabel">Imprimir Comprobante</h5>
@@ -632,7 +718,7 @@ if (isset($_GET["coti"])) {
     </div>
 
     <div class="modal fade" id="modalSelMultiProd" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered  modal-lg">
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-fullscreen-md-down modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="exampleModalLabel">Busqueda Multiple</h5>
@@ -653,7 +739,7 @@ if (isset($_GET["coti"])) {
                         </div>
                     </div>
                     <div v-if="pointSel==2">
-                        <table class="table table-sm table-bordered">
+                        <div class="table-responsive"><table class="table table-sm table-bordered" style="min-width: 560px;">
                             <thead>
                                 <tr>
                                     <td>Producto</td>
@@ -677,6 +763,7 @@ if (isset($_GET["coti"])) {
                                 </tr>
                             </tbody>
                         </table>
+                        </div>
                         <div v-if="itemsLista.length>0" style="width: 100%" class="text-end">
                             <button @click="pointSel=1" class="btn btn-warning">Regresar</button>
                             <button @click="agregarProducto2Ps" class="btn btn-primary">Agregar</button>

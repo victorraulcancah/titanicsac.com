@@ -63,7 +63,9 @@ class Cobranza
             FROM cotizaciones co
             INNER JOIN clientes AS c ON c.id_cliente = co.id_cliente
             LEFT JOIN usuarios us ON us.usuario_id = co.id_usuario
-            WHERE co.id_tipo_pago = 2 AND co.estado!=2)
+            WHERE co.id_tipo_pago = 2 AND co.estado!=2
+            -- Pedido ya convertido en venta: su deuda vive en la venta (evita deuda duplicada).
+            AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1))
             
             ORDER BY mercado ASC, cliente ASC, fecha_emision ASC";
         } else {
@@ -120,7 +122,9 @@ class Cobranza
             FROM cotizaciones co
             INNER JOIN clientes AS c ON c.id_cliente = co.id_cliente
             LEFT JOIN usuarios us ON us.usuario_id = co.id_usuario
-            WHERE co.id_tipo_pago = 2 AND co.estado!=2)
+            WHERE co.id_tipo_pago = 2 AND co.estado!=2
+            -- Pedido ya convertido en venta: su deuda vive en la venta (evita deuda duplicada).
+            AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1))
             
             ORDER BY mercado ASC, cliente ASC, fecha_emision ASC";
         }

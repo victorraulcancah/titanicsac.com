@@ -69,7 +69,7 @@ class ArqueoDiarioController extends Controller
         AND cc.estado = '1'
         AND co.id_empresa = '{$_SESSION['id_empresa']}'
         AND co.sucursal = '{$_SESSION['sucursal']}'
-        AND co.estado != 1 -- pedido ya convertido en venta: sus cobros viven en dias_ventas (evita doble conteo)
+        AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1) -- pedido ya convertido: sus cobros viven en dias_ventas (evita doble conteo)
         GROUP BY fecha_cobro, IFNULL(cc.id_usuario, co.id_usuario), u.usuario, cc.tipo_pago";
         
         $result_cc = $this->conexion->query($sql_cc);
@@ -171,7 +171,7 @@ class ArqueoDiarioController extends Controller
             AND TRIM(LOWER(IFNULL(cc.tipo_pago, ''))) NOT IN ('efectivo', '')
             AND co.id_empresa = '{$_SESSION['id_empresa']}'
             AND co.sucursal = '{$_SESSION['sucursal']}'
-            AND co.estado != 1 -- pedido ya convertido en venta: sus cobros viven en dias_ventas (evita doble conteo)
+            AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1) -- pedido ya convertido: sus cobros viven en dias_ventas (evita doble conteo)
         ) as t";
         
         $result_detalles = $this->conexion->query($sql_detalles);

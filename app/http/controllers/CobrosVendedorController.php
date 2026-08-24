@@ -59,7 +59,10 @@ class CobrosVendedorController extends Controller
                             AND DATE(cc.fecha_pago_real) BETWEEN '$fecha_inicio' AND '$fecha_fin'
                             AND cot.id_empresa = '{$_SESSION['id_empresa']}'
                             AND cot.sucursal = '{$_SESSION['sucursal']}'
-                            AND cot.estado != 1 -- pedido ya convertido en venta: sus cobros viven en dias_ventas (evita doble conteo)
+                            -- Pedido ya convertido: sus cobros viven en dias_ventas. Se comprueba contra la
+                            -- tabla ventas (no contra cotizaciones.estado) para que funcione aunque el flag
+                            -- del pedido quedara desincronizado.
+                            AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = cot.cotizacion_id AND v2.estado = 1)
                             ORDER BY cc.fecha_pago_real DESC";
         
         $result_cotizaciones = $this->conexion->query($sql_cotizaciones);
