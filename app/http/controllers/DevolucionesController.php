@@ -10,26 +10,52 @@ class DevolucionesController extends Controller
         $this->conectar=(new Conexion())->getConexion();
     }
 
+    /** Listado por DOCUMENTO: una fila por venta con sus devoluciones agrupadas
+     *  (el detalle de productos se ve en el modal de confirmación) */
     public function render(){
         try {
             $sql = "
             SELECT
-            dnv.id_devolucion,
             v.id_venta,
-            v.fecha_emision,
             CONCAT(v.serie, ' | ', v.numero) AS factura,
-            p.id_producto,
+            v.fecha_emision,
+            co.numero AS pedido,
+            CONCAT(IFNULL(c.documento,''), ' | ', IFNULL(c.datos,'SIN CLIENTE')) AS cliente,
+            COUNT(*) AS total_items,
+            SUM(CASE WHEN dnv.destino IS NULL OR dnv.destino = '' THEN 1 ELSE 0 END) AS pendientes,
+            MAX(dnv.fecha) AS fecha
+            FROM devoluciones_nv dnv
+            INNER JOIN ventas v ON v.id_venta = dnv.id_venta
+            LEFT JOIN cotizaciones co ON co.cotizacion_id = v.id_coti
+            LEFT JOIN clientes c ON c.id_cliente = v.id_cliente
+            GROUP BY v.id_venta, v.serie, v.numero, v.fecha_emision, co.numero, c.documento, c.datos
+            ORDER BY fecha DESC
+            ";
+            $fila = mysqli_query($this->conectar, $sql);
+            return json_encode(mysqli_fetch_all($fila, MYSQLI_ASSOC));
+        } catch (Exception $e) {
+            return json_encode([]);
+        }
+    }
+
+    /** Productos devueltos de un documento (para el modal de confirmación) */
+    public function detalle(){
+        try {
+            $idVenta = isset($_POST['id_venta']) ? intval($_POST['id_venta']) : 0;
+            $sql = "
+            SELECT
+            dnv.id_devolucion,
+            p.codsunat AS codigo,
             p.descripcion,
-            p.codsunat AS 'codigo',
+            CONCAT(dnv.signo, dnv.cantidad) AS cantidad,
             u.usuario,
-            CONCAT(dnv.signo,dnv.cantidad) AS cantidad,
             dnv.fecha,
             dnv.destino
             FROM devoluciones_nv dnv
-            INNER JOIN ventas v ON v.id_venta = dnv.id_venta
             INNER JOIN productos p ON p.id_producto = dnv.id_producto
-            INNER JOIN usuarios u ON u.usuario_id = dnv.id_usuario
-            ORDER BY dnv.fecha DESC
+            LEFT JOIN usuarios u ON u.usuario_id = dnv.id_usuario
+            WHERE dnv.id_venta = $idVenta
+            ORDER BY dnv.id_devolucion ASC
             ";
             $fila = mysqli_query($this->conectar, $sql);
             return json_encode(mysqli_fetch_all($fila, MYSQLI_ASSOC));
@@ -67,15 +93,18 @@ class DevolucionesController extends Controller
         $cantidad = abs(floatval($dev['cantidad']));
 
         if ($destino === 'p') {
-            // Producto malogrado: sale del stock (el flujo de venta ya lo había reingresado)
+            // Producto malogrado: sale del stock
             $ok = $this->conectar->query("UPDATE productos SET cantidad = cantidad - $cantidad WHERE id_producto = '{$dev['id_producto']}'");
             if (!$ok) {
                 return json_encode(["res" => false, "msg" => "No se pudo descontar el stock"]);
             }
             $kardex->registrar($dev['id_producto'], 'e', 'Perdida', $cantidad, 'devolucion:' . $id, 'Producto malogrado (devolución)');
+        } else {
+            // Regresa al almacén: constancia en el kardex como INGRESO 'Devolucion' (motivo de
+            // sistema), SIN alterar el saldo: el reingreso de stock ya lo registró el flujo que
+            // originó la devolución (edición o anulación de la venta).
+            $kardex->registrar($dev['id_producto'], 'i', 'Devolucion', $cantidad, 'devolucion:' . $id, 'Devolución confirmada: regresó al almacén', false);
         }
-        // Si regresa al almacén ('a') no se toca stock ni kardex: el reingreso ya quedó
-        // registrado por el flujo de venta (Edicion/Anulacion de venta); solo se marca el destino.
 
         $this->conectar->query("UPDATE devoluciones_nv SET destino = '$destino' WHERE id_devolucion = $id");
         return json_encode(["res" => true, "msg" => $destino === 'p' ? "Registrado como pérdida" : "Confirmado regreso al almacén"]);

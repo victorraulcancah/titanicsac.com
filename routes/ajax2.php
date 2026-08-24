@@ -135,6 +135,7 @@ Route::post("/ajs/set/state/pago/cv","ConsultasController@cambiarEstadoPAgoCv");
 #
 Route::post('/ajas/devolucones/render',"DevolucionesController@render");
 Route::post('/ajs/devoluciones/destino',"DevolucionesController@definirDestino");
+Route::post('/ajs/devoluciones/detalle',"DevolucionesController@detalle");
 
 
 

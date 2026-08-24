@@ -1147,6 +1147,10 @@ class VentasController extends Controller
             $resultado["res"] = true;
             $array_detalle = json_decode($_POST['listaPro'], true);
 
+            // NOTA: convertir un pedido quitando/reduciendo productos NO genera devoluciones:
+            // el pedido nunca descontó stock, así que no hay nada que devolver. Las devoluciones
+            // nacen al EDITAR o ANULAR una venta ya emitida (ahí el stock sí había salido).
+
             // Si proviene de cotización, limpiamos SOLO las cuotas que estaban originalmente NO PAGADAS (estado='0' o null).
             // Mantenemos las pagadas originales para no perder su registro histórico.
             if (isset($_POST['cotiId'])) {

@@ -27,7 +27,7 @@ class Kardex
      * @param string $referencia  ej. 'venta:123', 'compra:45', 'manual'
      * @param string $observacion
      */
-    public function registrar($idProducto, $tipo, $motivo, $cantidad, $referencia = '', $observacion = '')
+    public function registrar($idProducto, $tipo, $motivo, $cantidad, $referencia = '', $observacion = '', $afectaSaldo = true)
     {
         try {
             $idProducto = intval($idProducto);
@@ -56,7 +56,9 @@ class Kardex
             $resS = $this->conectar->query("SELECT cantidad FROM productos WHERE id_producto = $idProducto");
             if ($resS && $resS->num_rows > 0) {
                 $saldo = floatval($resS->fetch_assoc()['cantidad']);
-                $saldoAnterior = ($tipo === 'i') ? $saldo - $cantidad : $saldo + $cantidad;
+                // $afectaSaldo = false: movimiento informativo que NO movió stock (ej. devolución
+                // confirmada de un pedido convertido: la mercadería nunca salió del almacén en el sistema)
+                $saldoAnterior = $afectaSaldo ? (($tipo === 'i') ? $saldo - $cantidad : $saldo + $cantidad) : $saldo;
             }
 
             $idUsuario = 'NULL';
