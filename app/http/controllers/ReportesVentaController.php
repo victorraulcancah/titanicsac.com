@@ -2001,6 +2001,10 @@ class ReportesVentaController extends Controller
 
   public function comprobanteVentaMa4($venta, $nombreXML = '-')
   {
+    // Sin :nombre en la URL el router pasa el objeto Request como 2do parámetro
+    if (!is_string($nombreXML)) {
+      $nombreXML = '-';
+    }
 
 
 
