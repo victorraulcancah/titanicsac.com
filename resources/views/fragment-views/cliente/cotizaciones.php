@@ -34,6 +34,39 @@
                         <button id="imprimir-logistico-btn" class="btn btn-warning"><i class="fa fa-truck"></i> Cons. Logístico</button>
                     <?php endif; ?>
                 </div>
+                <?php if (isset($_SESSION['rol']) && $_SESSION['rol'] == 7): // filtros de reparto (solo rol REPARTIDOR) ?>
+                <div class="row g-2 align-items-end mb-3">
+                    <div class="col-6 col-md-3">
+                        <label for="f_fecha" class="form-label form-label-sm fs-7">Fecha</label>
+                        <input type="date" id="f_fecha" class="form-control form-control-sm" value="<?= date('Y-m-d') ?>">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label for="f_camion" class="form-label form-label-sm fs-7">Camión</label>
+                        <select id="f_camion" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <option value="1">Camión 1</option>
+                            <option value="2">Camión 2</option>
+                            <option value="3">Camión 3</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label for="f_dia" class="form-label form-label-sm fs-7">Día de visita</label>
+                        <select id="f_dia" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <option value="lunes">Lunes</option>
+                            <option value="martes">Martes</option>
+                            <option value="miercoles">Miércoles</option>
+                            <option value="jueves">Jueves</option>
+                            <option value="viernes">Viernes</option>
+                            <option value="sabado">Sábado</option>
+                            <option value="domingo">Domingo</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-3 d-grid">
+                        <button type="button" id="f_limpiar" class="btn btn-secondary btn-sm"><i class="fa fa-eraser"></i> Limpiar</button>
+                    </div>
+                </div>
+                <?php endif; ?>
                 <div class="table-responsive">
                     <table id="datatable-c" class="table nowrap table-sm table-bordered text-center">
                         <thead>
@@ -332,6 +365,14 @@
             "processing": true,
             "serverSide": true,
             "sAjaxSource": _URL + "/data/cotizaciones/lista/ss",
+            // Filtros de reparto: se envían en cada petición (solo existen para el rol REPARTIDOR)
+            "fnServerParams": function (aoData) {
+                if ($("#f_fecha").length) {
+                    aoData.push({ name: "f_fecha", value: $("#f_fecha").val() });
+                    aoData.push({ name: "f_camion", value: $("#f_camion").val() });
+                    aoData.push({ name: "f_dia", value: $("#f_dia").val() });
+                }
+            },
             order: [
                 [0, "desc"]
             ],
@@ -432,6 +473,17 @@
             <?php endif; ?>
             ]
         });
+
+    // Filtros de reparto: al cambiar cualquiera se recarga la tabla desde el servidor
+    $("#f_fecha, #f_camion, #f_dia").on("change", function () {
+        tabla.ajax.reload();
+    });
+    $("#f_limpiar").on("click", function () {
+        $("#f_fecha").val("");
+        $("#f_camion").val("");
+        $("#f_dia").val("");
+        tabla.ajax.reload();
+    });
 
     // Mostrar el modal para imprimir logistico
     $("#imprimir-logistico-btn").on('click', function() {

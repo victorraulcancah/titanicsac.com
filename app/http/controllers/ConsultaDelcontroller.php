@@ -18,6 +18,51 @@ class ConsultaDelcontroller extends Controller
         /*   $c_producto->setIdEmpresa($_SESSION['id_empresa']); */
     }
 
+    /**
+     * Filtros de reparto para el listado de pedidos: fecha, camión y día de visita.
+     * Devuelve un arreglo de condiciones SQL ya escapadas (vacío si no se envió ningún filtro).
+     * El camión se traduce a día de visita + rutas del cliente (mismo mapeo que los reportes).
+     */
+    private function filtrosReparto()
+    {
+        $cond = [];
+        $fecha = isset($_GET['f_fecha']) ? trim($_GET['f_fecha']) : '';
+        $camion = isset($_GET['f_camion']) ? trim($_GET['f_camion']) : '';
+        $dia = isset($_GET['f_dia']) ? trim($_GET['f_dia']) : '';
+
+        if ($fecha !== '') {
+            $fechaEsc = $this->conexion->real_escape_string($fecha);
+            $cond[] = "DATE(COALESCE(c.fecha_registro, c.fecha)) = '$fechaEsc'";
+        }
+
+        // Mapa camión => día de visita => rutas (igual que ReportesDeudaController::obtenerFiltros)
+        $mapa = [
+            '1' => ['lunes' => ['1','7'], 'martes' => ['5','7'], 'miercoles' => ['5'], 'jueves' => ['1','7'], 'viernes' => ['6','7'], 'sabado' => ['7','8']],
+            '2' => ['lunes' => ['3','6'], 'martes' => ['1','3'], 'miercoles' => ['1','3'], 'jueves' => ['6','3'], 'viernes' => ['3','5'], 'sabado' => ['3','6']],
+            '3' => ['miercoles' => ['6','7'], 'viernes' => ['8','2'], 'sabado' => ['1','5']],
+        ];
+
+        if ($camion !== '' && isset($mapa[$camion])) {
+            $filtros = $mapa[$camion];
+            if ($dia !== '') {
+                $filtros = isset($filtros[$dia]) ? [$dia => $filtros[$dia]] : [];
+            }
+            $partes = [];
+            foreach ($filtros as $diaMapa => $rutas) {
+                $diaEsc = $this->conexion->real_escape_string($diaMapa);
+                $rutasEsc = implode(',', array_map('intval', $rutas));
+                $partes[] = "(LOWER(cl.dias_visitas) = LOWER('$diaEsc') AND cl.id_ruta IN ($rutasEsc))";
+            }
+            // Camión sin recorrido ese día: no debe listar nada
+            $cond[] = empty($partes) ? "1 = 0" : "(" . implode(' OR ', $partes) . ")";
+        } elseif ($dia !== '') {
+            $diaEsc = $this->conexion->real_escape_string($dia);
+            $cond[] = "LOWER(cl.dias_visitas) = LOWER('$diaEsc')";
+        }
+
+        return $cond;
+    }
+
     public function getDataCotizacionSS(){
         // Limpiar cualquier salida previa (solo si hay buffer activo)
         if (ob_get_level() > 0) {
@@ -30,6 +75,13 @@ class ConsultaDelcontroller extends Controller
             $where = "";
             if ($_SESSION['rol'] != 1 && $_SESSION['rol'] != 4 && $_SESSION['rol'] != 7) {
                 $where = "WHERE c.id_usuario = '{$_SESSION['usuario_fac']}'";
+            }
+
+            // Filtros de reparto (fecha / camión / día de visita). El camión se traduce a la
+            // combinación día de visita + rutas del cliente, igual que en Cuentas por Cobrar.
+            $condFiltros = $this->filtrosReparto();
+            foreach ($condFiltros as $cond) {
+                $where .= ($where == '') ? "WHERE $cond" : " AND $cond";
             }
             
             // Búsqueda
@@ -105,7 +157,13 @@ class ConsultaDelcontroller extends Controller
             if ($_SESSION['rol'] != 1 && $_SESSION['rol'] != 4 && $_SESSION['rol'] != 7) {
                 $whereBase = "WHERE c.id_usuario = '{$_SESSION['usuario_fac']}'";
             }
-            $sqlCountTotal = "SELECT COUNT(*) as total FROM cotizaciones c $whereBase";
+            // Los filtros de reparto también cuentan aquí (si no, el total no coincide con lo listado)
+            foreach ($condFiltros as $cond) {
+                $whereBase .= ($whereBase == '') ? "WHERE $cond" : " AND $cond";
+            }
+            $sqlCountTotal = "SELECT COUNT(*) as total FROM cotizaciones c
+                LEFT JOIN clientes cl ON c.id_cliente = cl.id_cliente
+                $whereBase";
             $countTotalResult = $this->conexion->query($sqlCountTotal);
             $totalRecords = $countTotalResult->fetch_assoc()['total'];
             
