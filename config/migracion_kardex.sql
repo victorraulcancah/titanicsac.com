@@ -99,3 +99,15 @@ ALTER TABLE productos MODIFY cantidad DECIMAL(12,2) NOT NULL DEFAULT 0;
 -- Cantidad interna de la linea de venta con 6 decimales: al entregar menos de una presentacion
 -- (ej. 11.5 kg de bolsas de 3 kg = 3.833333 bolsas) el total y los kilos salen exactos.
 ALTER TABLE productos_ventas MODIFY cantidad DECIMAL(12,6) NOT NULL DEFAULT 0;
+
+-- ============================================================
+-- AUDITORIA DE VENTAS ANULADAS
+-- La anulacion de una venta registra aqui la fecha y el motivo. Si la tabla falta,
+-- la anulacion fallaba a medias (la venta quedaba anulada pero el proceso se cortaba).
+-- ============================================================
+CREATE TABLE IF NOT EXISTS ventas_anuladas (
+    id_venta INT NOT NULL,
+    fecha DATE DEFAULT NULL,
+    motivo VARCHAR(250) DEFAULT NULL,
+    PRIMARY KEY (id_venta)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

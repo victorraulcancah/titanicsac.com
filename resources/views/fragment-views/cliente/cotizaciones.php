@@ -342,6 +342,11 @@
                         render(data, type, row) {
                             // Usar row[10] que es cotizacion_id
                             var cotizacionId = row[10];
+                            // row[7] = estado: '1' significa que el pedido YA se convirtió en venta.
+                            // Vuelve a habilitarse solo si esa venta se anula.
+                            if (row[7] == '1') {
+                                return `<button type="button" class="btn btn-secondary btn-sm" disabled style="opacity:0.5;cursor:not-allowed;" title="Pedido ya convertido en venta. Anule la venta para volver a convertirlo"><i class="fa fa-lock"></i></button>`;
+                            }
                             return `<a href="/ventas/productos?coti=${cotizacionId}" class="btn btn-success btn-sm button-link"><i class="fa fa-align-justify"></i></a>`;
                         }
                     },

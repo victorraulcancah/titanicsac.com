@@ -245,6 +245,15 @@ class FragmentController extends Controller
     }
     public function ventasProductos()
     {
+        // Un pedido ya convertido no se puede volver a convertir (se libera al anular la venta)
+        if (isset($_GET['coti']) && intval($_GET['coti']) > 0) {
+            $idCoti = intval($_GET['coti']);
+            $conexion = (new Conexion())->getConexion();
+            $rs = $conexion->query("SELECT COUNT(*) AS c FROM ventas WHERE id_coti = $idCoti AND estado = 1");
+            if ($rs && intval($rs->fetch_assoc()['c']) > 0) {
+                return '<div class="alert alert-warning m-3">Este pedido ya fue convertido en venta. Para volver a convertirlo debe anular la venta desde la pantalla de Ventas.</div>';
+            }
+        }
         return $this->view("fragment-views/cliente/ventas-productos");
     }
     public function ventasServicios()

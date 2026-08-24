@@ -340,6 +340,20 @@ class VentasController extends Controller
         if ($this->venta->anular()) {
             $resultado['res'] = true;
             $c_anulada->insertar();
+
+            // El pedido de origen vuelve a quedar disponible para convertirse en venta,
+            // salvo que tenga otra venta vigente (estado = 1)
+            $idVentaAnulada = intval($this->venta->getIdVenta());
+            $rsCoti = $this->conexion->query("SELECT id_coti FROM ventas WHERE id_venta = $idVentaAnulada");
+            $filaCoti = $rsCoti ? $rsCoti->fetch_assoc() : null;
+            $idCoti = ($filaCoti && !empty($filaCoti['id_coti'])) ? intval($filaCoti['id_coti']) : 0;
+            if ($idCoti > 0) {
+                $rsOtras = $this->conexion->query("SELECT COUNT(*) AS c FROM ventas WHERE id_coti = $idCoti AND estado = 1");
+                $otras = $rsOtras ? intval($rsOtras->fetch_assoc()['c']) : 0;
+                if ($otras == 0) {
+                    $this->conexion->query("UPDATE cotizaciones SET estado = 0 WHERE cotizacion_id = $idCoti");
+                }
+            }
         }
         return json_encode($resultado);
     }
@@ -997,7 +1011,21 @@ class VentasController extends Controller
     public function guardarVentas()
     {
         $resultado = ["res" => false];
-        
+
+        // VALIDACIÓN: un pedido ya convertido no se puede volver a convertir.
+        // Se libera solo al ANULAR la venta que generó (ver anularVenta()).
+        $cotiIdConv = isset($_POST['cotiId']) ? intval($_POST['cotiId']) : (isset($_POST['idCoti']) ? intval($_POST['idCoti']) : 0);
+        if ($cotiIdConv > 0) {
+            $rsConv = $this->conexion->query("SELECT COUNT(*) AS c FROM ventas WHERE id_coti = $cotiIdConv AND estado = 1");
+            if ($rsConv && intval($rsConv->fetch_assoc()['c']) > 0) {
+                echo json_encode([
+                    'res' => false,
+                    'msj' => 'Este pedido ya fue convertido en venta. Para volver a convertirlo debe anular la venta.'
+                ]);
+                return;
+            }
+        }
+
         // VALIDACIÓN: Cliente obligatorio
         $num_doc = trim(filter_input(INPUT_POST, 'num_doc'));
         $nom_cli = trim(filter_input(INPUT_POST, 'nom_cli'));

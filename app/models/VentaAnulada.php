@@ -65,9 +65,16 @@ class VentaAnulada
 
     public function insertar()
     {
-        $sql = "insert into ventas_anuladas 
-        values ('$this->id_venta', '$this->fecha', '$this->motivo')";
-        $resulta=  $this->conectar->query($sql);
+        // El registro de auditoría no debe cortar la anulación (stock, kardex y devoluciones):
+        // si falla, se deja constancia en el log y el proceso continúa.
+        $resulta = false;
+        try {
+            $sql = "insert into ventas_anuladas
+            values ('$this->id_venta', '$this->fecha', '$this->motivo')";
+            $resulta = $this->conectar->query($sql);
+        } catch (Throwable $e) {
+            error_log('VENTA ANULADA (auditoria): ' . $e->getMessage());
+        }
 
         #verificamos si es una NV
         $sql="select * from ventas where id_venta='$this->id_venta'";

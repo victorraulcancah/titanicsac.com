@@ -565,6 +565,10 @@
                 ]).draw(false);
             })
         })*/
+        // La tabla es serverSide: se vuelve a pedir la página actual (sin perder paginado ni búsqueda)
+        if (typeof tabla !== 'undefined' && tabla && tabla.ajax) {
+            tabla.ajax.reload(null, false);
+        }
     }
     var tabla;
 
@@ -805,7 +809,7 @@
             ]
         })
 
-        tes()
+        // La DataTable ya carga sus datos al inicializarse; llamar a tes() aquí duplicaría la petición
 
 
         $("#datatable").on("click", ".btn-send-fac", function(evt) {
