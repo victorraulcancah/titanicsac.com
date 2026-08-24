@@ -34,11 +34,29 @@
                         <button id="imprimir-logistico-btn" class="btn btn-warning"><i class="fa fa-truck"></i> Cons. Logístico</button>
                     <?php endif; ?>
                 </div>
-                <?php if (isset($_SESSION['rol']) && $_SESSION['rol'] == 7): // filtros de reparto (solo rol REPARTIDOR) ?>
+                <?php if (isset($_SESSION['rol']) && $_SESSION['rol'] == 7): // filtros de reparto (solo rol REPARTIDOR)
+                    // Un día de reparto entrega los pedidos tomados en los 2 días hábiles anteriores
+                    // (se salta el domingo): p. ej. reparto miércoles => pedidos de lunes y martes;
+                    // reparto lunes => pedidos de viernes y sábado.
+                    $diasHabiles = [];
+                    $cursor = new DateTime('today');
+                    while (count($diasHabiles) < 2) {
+                        $cursor->modify('-1 day');
+                        if ($cursor->format('N') != 7) { // 7 = domingo
+                            $diasHabiles[] = $cursor->format('Y-m-d');
+                        }
+                    }
+                    $fechaHasta = $diasHabiles[0]; // día hábil anterior
+                    $fechaDesde = $diasHabiles[1]; // el anterior a ese
+                ?>
                 <div class="row g-2 align-items-end mb-3">
                     <div class="col-6 col-md-3">
-                        <label for="f_fecha" class="form-label form-label-sm fs-7">Fecha</label>
-                        <input type="date" id="f_fecha" class="form-control form-control-sm" value="<?= date('Y-m-d') ?>">
+                        <label for="f_desde" class="form-label form-label-sm fs-7">Pedidos desde</label>
+                        <input type="date" id="f_desde" class="form-control form-control-sm" value="<?= $fechaDesde ?>">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label for="f_hasta" class="form-label form-label-sm fs-7">Hasta</label>
+                        <input type="date" id="f_hasta" class="form-control form-control-sm" value="<?= $fechaHasta ?>">
                     </div>
                     <div class="col-6 col-md-3">
                         <label for="f_camion" class="form-label form-label-sm fs-7">Camión</label>
@@ -62,7 +80,8 @@
                             <option value="domingo">Domingo</option>
                         </select>
                     </div>
-                    <div class="col-6 col-md-3 d-grid">
+                    <div class="col-12 col-md-12 d-flex gap-2 justify-content-end">
+                        <button type="button" id="f_reparto_hoy" class="btn btn-primary btn-sm" title="Pedidos de los 2 días hábiles previos"><i class="fa fa-truck"></i> Reparto de hoy</button>
                         <button type="button" id="f_limpiar" class="btn btn-secondary btn-sm"><i class="fa fa-eraser"></i> Limpiar</button>
                     </div>
                 </div>
@@ -367,8 +386,9 @@
             "sAjaxSource": _URL + "/data/cotizaciones/lista/ss",
             // Filtros de reparto: se envían en cada petición (solo existen para el rol REPARTIDOR)
             "fnServerParams": function (aoData) {
-                if ($("#f_fecha").length) {
-                    aoData.push({ name: "f_fecha", value: $("#f_fecha").val() });
+                if ($("#f_desde").length) {
+                    aoData.push({ name: "f_desde", value: $("#f_desde").val() });
+                    aoData.push({ name: "f_hasta", value: $("#f_hasta").val() });
                     aoData.push({ name: "f_camion", value: $("#f_camion").val() });
                     aoData.push({ name: "f_dia", value: $("#f_dia").val() });
                 }
@@ -475,11 +495,18 @@
         });
 
     // Filtros de reparto: al cambiar cualquiera se recarga la tabla desde el servidor
-    $("#f_fecha, #f_camion, #f_dia").on("change", function () {
+    $("#f_desde, #f_hasta, #f_camion, #f_dia").on("change", function () {
+        tabla.ajax.reload();
+    });
+    // Vuelve al rango por defecto: los 2 días hábiles anteriores (sin contar domingo)
+    $("#f_reparto_hoy").on("click", function () {
+        $("#f_desde").val("<?= isset($fechaDesde) ? $fechaDesde : '' ?>");
+        $("#f_hasta").val("<?= isset($fechaHasta) ? $fechaHasta : '' ?>");
         tabla.ajax.reload();
     });
     $("#f_limpiar").on("click", function () {
-        $("#f_fecha").val("");
+        $("#f_desde").val("");
+        $("#f_hasta").val("");
         $("#f_camion").val("");
         $("#f_dia").val("");
         tabla.ajax.reload();

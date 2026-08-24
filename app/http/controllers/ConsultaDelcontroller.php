@@ -26,13 +26,19 @@ class ConsultaDelcontroller extends Controller
     private function filtrosReparto()
     {
         $cond = [];
-        $fecha = isset($_GET['f_fecha']) ? trim($_GET['f_fecha']) : '';
+        $desde = isset($_GET['f_desde']) ? trim($_GET['f_desde']) : '';
+        $hasta = isset($_GET['f_hasta']) ? trim($_GET['f_hasta']) : '';
         $camion = isset($_GET['f_camion']) ? trim($_GET['f_camion']) : '';
         $dia = isset($_GET['f_dia']) ? trim($_GET['f_dia']) : '';
 
-        if ($fecha !== '') {
-            $fechaEsc = $this->conexion->real_escape_string($fecha);
-            $cond[] = "DATE(COALESCE(c.fecha_registro, c.fecha)) = '$fechaEsc'";
+        // Rango de fechas del pedido (el reparto de un día atiende pedidos de días anteriores)
+        if ($desde !== '') {
+            $desdeEsc = $this->conexion->real_escape_string($desde);
+            $cond[] = "DATE(COALESCE(c.fecha_registro, c.fecha)) >= '$desdeEsc'";
+        }
+        if ($hasta !== '') {
+            $hastaEsc = $this->conexion->real_escape_string($hasta);
+            $cond[] = "DATE(COALESCE(c.fecha_registro, c.fecha)) <= '$hastaEsc'";
         }
 
         // Mapa camión => día de visita => rutas (igual que ReportesDeudaController::obtenerFiltros)
