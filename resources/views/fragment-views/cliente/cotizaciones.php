@@ -23,9 +23,11 @@
             <div class="card-body">
                 <h4 class="card-title"></h4>
                 <div class="card-title-desc text-end">
+                    <?php if (!isset($_SESSION['rol']) || $_SESSION['rol'] != 7): // el repartidor no crea pedidos, solo los convierte a venta ?>
                     <a href="/cotizaciones/add" id="folder_btn_nuevo_folder" class="btn btn-primary button-link">
                         <i class="fa fa-plus "></i> Nuevo Pedido
                     </a>
+                    <?php endif; ?>
                     <?php if ($_SESSION["rol"] == 1): ?>
                         <button id="ventas-reporte" class="btn btn-info"><i class="fa fa-file-pdf-o"></i> Exportar Reporte de Vendedores</button>
                         <button id="imprimir" class="btn btn-success"><i class="fa fa-print"></i> Imprimir PDFs</button>
@@ -381,6 +383,15 @@
 
                         var disabledAttr = disabled ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
                         var disabledClass = disabled ? 'disabled' : '';
+
+                        // REPARTIDOR (rol 7): solo convierte pedidos a venta; no edita ni elimina
+                        if (rol_usuario == 7) {
+                            return `
+                        <a target="_blank" href="${'./cotizaciones/reporteCuotas/' + cotizacionId}" class="btn btn-sm btn-light"><i class="bi bi-filetype-pdf"></i></a>
+                        <a href="${_URL + '/r/cotizaciones/reporte/' + cotizacionId}" target="_blank" class="btn btn-sm btn-info"><i class="fa fa-file"></i></a>
+                        <a href="${_URL + '/r/cotizaciones/reporteA4/' + cotizacionId}" target="_blank" class="btn btn-sm btn-warning"><i class="fa fa-file"></i></a>
+                    `;
+                        }
 
                         return `
                         <a target="_blank" href="${'./cotizaciones/reporteCuotas/' + cotizacionId}" class="btn btn-sm btn-light"><i class="bi bi-filetype-pdf"></i></a>

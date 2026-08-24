@@ -25,9 +25,10 @@ class ConsultaDelcontroller extends Controller
         }
         
         try {
-            // Construir el WHERE según el rol
+            // Construir el WHERE según el rol: admin (1), cajero (4) y repartidor (7) ven TODOS
+            // los pedidos; los demás roles (ej. vendedor) solo los suyos
             $where = "";
-            if ($_SESSION['rol'] != 1 && $_SESSION['rol'] != 4) {
+            if ($_SESSION['rol'] != 1 && $_SESSION['rol'] != 4 && $_SESSION['rol'] != 7) {
                 $where = "WHERE c.id_usuario = '{$_SESSION['usuario_fac']}'";
             }
             
@@ -98,9 +99,10 @@ class ConsultaDelcontroller extends Controller
                 throw new Exception("Error en la consulta: " . $this->conexion->error);
             }
             
-            // Contar total de registros (sin filtro de búsqueda)
+            // Contar total de registros (sin filtro de búsqueda) — mismos roles que el listado:
+            // admin (1), cajero (4) y repartidor (7) ven todos
             $whereBase = "";
-            if ($_SESSION['rol'] != 1 && $_SESSION['rol'] != 4) {
+            if ($_SESSION['rol'] != 1 && $_SESSION['rol'] != 4 && $_SESSION['rol'] != 7) {
                 $whereBase = "WHERE c.id_usuario = '{$_SESSION['usuario_fac']}'";
             }
             $sqlCountTotal = "SELECT COUNT(*) as total FROM cotizaciones c $whereBase";

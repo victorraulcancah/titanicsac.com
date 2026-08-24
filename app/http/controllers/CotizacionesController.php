@@ -130,6 +130,10 @@ class CotizacionesController extends Controller
     }
     public function eliminarCotizacion()
     {
+        // El repartidor (rol 7) solo convierte pedidos a venta: no puede eliminarlos
+        if (isset($_SESSION['rol']) && $_SESSION['rol'] == 7) {
+            return json_encode(["res" => false, "msj" => "Su rol no permite eliminar pedidos"]);
+        }
         // Primero verificar que el pedido existe
         $sql = "SELECT cotizacion_id, fecha_registro, id_usuario FROM cotizaciones WHERE cotizacion_id = '{$_POST['cod']}'";
         $result = $this->conexion->query($sql);
@@ -198,6 +202,12 @@ class CotizacionesController extends Controller
     public function actualizar()
     {
         $respuesta = ["res" => false];
+
+        // El repartidor (rol 7) solo convierte pedidos a venta: no puede editarlos
+        if (isset($_SESSION['rol']) && $_SESSION['rol'] == 7) {
+            $respuesta["msj"] = "Su rol no permite editar pedidos";
+            return json_encode($respuesta);
+        }
 
         // Verificar la fecha de creación del pedido para vendedores
         $sql = "SELECT fecha_registro, id_usuario FROM cotizaciones WHERE cotizacion_id = '{$_POST['cotiId']}'";
@@ -515,6 +525,10 @@ class CotizacionesController extends Controller
 
     public function agregar()
     {
+        // El repartidor (rol 7) solo convierte pedidos a venta: no puede crearlos
+        if (isset($_SESSION['rol']) && $_SESSION['rol'] == 7) {
+            return json_encode(["res" => false, "msj" => "Su rol no permite crear pedidos"]);
+        }
         $respuesta = ["res" => false];
 
         // VALIDACIÓN: Cliente obligatorio

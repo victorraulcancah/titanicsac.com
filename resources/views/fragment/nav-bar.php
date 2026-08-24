@@ -213,6 +213,28 @@ $id_role = isset($_SESSION['rol'])?$_SESSION['rol']:1;
         <?php endif;?>
         <!-- fin de nav de cajera -->
 
+        <!-- inicio de nav de repartidor -->
+        <?php if($id_role == "7"): ?>
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0 w-100">
+            <li class="nav-item">
+                <a class="nav-link" href="<?= DOMINIO ?>cotizaciones">
+                    <i class="fa fa-align-justify"></i>PEDIDOS
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="<?= DOMINIO ?>cobranzas">
+                    <i class="fa fa-money-bill"></i>CUENTAS POR COBRAR
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="<?= DOMINIO ?>mis-cobros">
+                    <i class="fa fa-hand-holding-usd"></i>MIS COBROS
+                </a>
+            </li>
+        </ul>
+        <?php endif;?>
+        <!-- fin de nav de repartidor -->
+
         <!-- inicio de nav de contador -->
         <?php if($id_role == "5"): ?>
         <ul class="navbar-nav me-auto mb-2 mb-lg-0 w-100 text-center">

@@ -624,7 +624,8 @@ if (isset($_GET["coti"])) {
 
                 </div>
                 <div class="modal-footer">
-                    <a href="<?= URL::to('/ventas') ?>" class="btn btn-secondary">Cerrar</a>
+                    <?php /* Al convertir un PEDIDO se regresa siempre a la lista de pedidos */ ?>
+                    <a href="<?= URL::to(isset($_GET['coti']) ? '/cotizaciones' : '/ventas') ?>" class="btn btn-secondary">Cerrar</a>
                 </div>
             </div>
         </div>
@@ -1550,6 +1551,11 @@ if (isset($_GET["coti"])) {
                                                 /*   console.log(resp);
                                                   return */
                                                 alertExito("Exito", "Venta Guardada").then(function() {
+                                                        // Venta desde un PEDIDO: sin modal de impresión, se vuelve directo a Pedidos
+                                                        if (urlVolverComprobante) {
+                                                            location.href = urlVolverComprobante;
+                                                            return;
+                                                        }
                                                         $("#ce-t-a4").attr("href", _URL + "/venta/comprobante/pdf/" + resp.venta + "/" + resp.nomxml);
                                                         $("#ce-t-a4-m").attr("href", _URL + "/venta/comprobante/pdf/ma4/" + resp.venta + "/" + resp.nomxml);
                                                         $("#ce-t-8cm").attr("href", _URL + "/venta/pdf/voucher/8cm/" + resp.venta + "/" + resp.nomxml);
@@ -2119,12 +2125,14 @@ if (isset($_GET["coti"])) {
             }
         })
 
+        // Si la venta vino de un PEDIDO, al cerrar el modal de impresión se vuelve a Pedidos (para todos los roles)
+        window.urlVolverComprobante = <?= json_encode(isset($_GET['coti']) ? URL::to('/cotizaciones') : '') ?>; // global: se usa también en el callback de guardar
         $('#container-vue .modalImprimirComprobante').on('hidden.bs.modal', function(e) {
-            location.reload();
+            if (urlVolverComprobante) { location.href = urlVolverComprobante; } else { location.reload(); }
         })
 
         $('#modalImprimirComprobante').on('hidden.bs.modal', function(e) {
-            location.reload();
+            if (urlVolverComprobante) { location.href = urlVolverComprobante; } else { location.reload(); }
         })
 
         $(document).on('click', '#btndiaspago', function() {

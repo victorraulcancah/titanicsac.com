@@ -354,7 +354,9 @@ class VentasController extends Controller
         header('Pragma: no-cache');
         header('Cache-Control: no-store, no-cache, must-revalidate');
         $table_data = new TableData();
-        $where = ($_SESSION['rol'] == 1) ? "" : "where sucursal = {$_SESSION["sucursal"]} ";
+        // view_ventas no tiene columna sucursal: para roles no-admin se filtra vía subconsulta a
+        // ventas (antes el "where sucursal=" reventaba la consulta y DataTables recibía "Invalid JSON")
+        $where = ($_SESSION['rol'] == 1) ? "" : "where id_venta in (select id_venta from ventas where sucursal = {$_SESSION["sucursal"]}) ";
         ob_start();
         $table_data->get("view_ventas", "id_venta", [
             "cod_v",
