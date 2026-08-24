@@ -259,12 +259,24 @@ class FragmentController extends Controller
     {
         return $this->view("fragment-views/cliente/calendario");
     }
+    /** El repartidor (rol 7) no trabaja con guías de remisión */
+    private function sinAccesoGuia()
+    {
+        return isset($_SESSION['rol']) && $_SESSION['rol'] == 7;
+    }
+
     public function guiaRemision()
     {
+        if ($this->sinAccesoGuia()) {
+            return '<div class="alert alert-warning m-3">Su rol no tiene acceso a Guías de Remisión.</div>';
+        }
         return $this->view("fragment-views/cliente/guia-remision");
     }
     public function guiaRemisionAdd()
     {
+        if ($this->sinAccesoGuia()) {
+            return '<div class="alert alert-warning m-3">Su rol no tiene acceso a Guías de Remisión.</div>';
+        }
         return $this->view("fragment-views/cliente/guia-remision-add");
     }
     public function almacenProductos()

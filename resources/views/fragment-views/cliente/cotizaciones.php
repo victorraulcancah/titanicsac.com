@@ -384,15 +384,13 @@
                         var disabledAttr = disabled ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : '';
                         var disabledClass = disabled ? 'disabled' : '';
 
-                        // REPARTIDOR (rol 7): solo convierte pedidos a venta; no edita ni elimina
-                        if (rol_usuario == 7) {
-                            return `
+                        <?php if ($_SESSION["rol"] == 7): // REPARTIDOR: solo convierte pedidos a venta, no edita ni elimina ?>
+                        return `
                         <a target="_blank" href="${'./cotizaciones/reporteCuotas/' + cotizacionId}" class="btn btn-sm btn-light"><i class="bi bi-filetype-pdf"></i></a>
                         <a href="${_URL + '/r/cotizaciones/reporte/' + cotizacionId}" target="_blank" class="btn btn-sm btn-info"><i class="fa fa-file"></i></a>
                         <a href="${_URL + '/r/cotizaciones/reporteA4/' + cotizacionId}" target="_blank" class="btn btn-sm btn-warning"><i class="fa fa-file"></i></a>
                     `;
-                        }
-
+                        <?php else: ?>
                         return `
                         <a target="_blank" href="${'./cotizaciones/reporteCuotas/' + cotizacionId}" class="btn btn-sm btn-light"><i class="bi bi-filetype-pdf"></i></a>
                         <a href="${disabled ? 'javascript:void(0)' : '/cotizaciones/edt/' + cotizacionId}" class="button-link btn btn-sm btn-primary ${disabledClass}" ${disabledAttr}><i class="fa fa-edit"></i></a>
@@ -400,9 +398,10 @@
                         <a href="${_URL + '/r/cotizaciones/reporteA4/' + cotizacionId}" target="_blank" class="btn btn-sm btn-warning"><i class="fa fa-file"></i></a>
                         <button onclick="${disabled ? 'return false' : 'eliminarCotizacion(' + cotizacionId + ')'}" type="button" class="btn-del btn btn-danger btn-sm" ${disabledAttr}><i class="fa fa-times"></i></button>
                     `;
+                        <?php endif; ?>
                     }
                 },
-                <?php if ($_SESSION["rol"] != 3): ?>
+                <?php if ($_SESSION["rol"] != 3 && $_SESSION["rol"] != 7): // el repartidor tampoco genera guías de remisión ?>
                     {
                         targets: 9,
                         render(data, type, row) {
@@ -410,6 +409,13 @@
                             var cotizacionId = row[10];
                             return `<a href="/guia/remision/registrar?coti=${cotizacionId}" class="btn btn-success btn-sm button-link"><i class="fa fa-clipboard"></i></a>`;
                         }
+                    }
+            <?php elseif ($_SESSION["rol"] == 7): ?>
+                    {
+                        // Repartidor: la columna Guía Remisión se oculta por completo (encabezado incluido).
+                        // Se oculta en vez de quitar el <th> para no desplazar los índices de las demás columnas.
+                        targets: 9,
+                        visible: false
                     }
             <?php else: ?>
                     {
