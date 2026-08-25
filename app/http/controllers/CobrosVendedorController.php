@@ -69,7 +69,34 @@ class CobrosVendedorController extends Controller
         while ($row = $result_cotizaciones->fetch_assoc()) {
             $cobros[] = $row;
         }
-        
+
+        // Cobros ANULADOS: siguen visibles como constancia (el front los muestra tachados
+        // y no los suma en los totales)
+        $sql_anulados = "SELECT
+                            ca.cobro_anulado_id AS dias_venta_id,
+                            ca.monto,
+                            ca.tipo_pago,
+                            ca.fecha_pago_real,
+                            CASE WHEN ca.tipo = 'v'
+                                 THEN (SELECT CONCAT(v.serie, '-', v.numero) FROM ventas v WHERE v.id_venta = ca.id_documento)
+                                 ELSE (SELECT CONCAT('COT-', co.numero) FROM cotizaciones co WHERE co.cotizacion_id = ca.id_documento)
+                            END AS documento,
+                            CASE WHEN ca.tipo = 'v'
+                                 THEN (SELECT c.datos FROM ventas v INNER JOIN clientes c ON c.id_cliente = v.id_cliente WHERE v.id_venta = ca.id_documento)
+                                 ELSE (SELECT c.datos FROM cotizaciones co INNER JOIN clientes c ON c.id_cliente = co.id_cliente WHERE co.cotizacion_id = ca.id_documento)
+                            END AS cliente,
+                            CASE WHEN ca.tipo = 'v' THEN 'Venta' ELSE 'Cotización' END AS tipo_documento,
+                            1 AS anulado
+                        FROM cobros_anulados ca
+                        WHERE ca.id_usuario = '$id_usuario'
+                        AND DATE(ca.fecha_pago_real) BETWEEN '$fecha_inicio' AND '$fecha_fin'";
+        $result_anulados = $this->conexion->query($sql_anulados);
+        if ($result_anulados) {
+            while ($row = $result_anulados->fetch_assoc()) {
+                $cobros[] = $row;
+            }
+        }
+
         // Ordenar todos los cobros por fecha
         usort($cobros, function($a, $b) {
             return strtotime($b['fecha_pago_real']) - strtotime($a['fecha_pago_real']);

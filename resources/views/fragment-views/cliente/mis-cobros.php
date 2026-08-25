@@ -35,7 +35,7 @@
             </div>
 
             <div class="card-body">
-                <!-- Resumen de totales (solo se muestra despu¨¦s de buscar) -->
+                <!-- Resumen de totales (solo se muestra despuï¿½ï¿½s de buscar) -->
                 <div v-if="mostrarResultados" class="row mb-4">
                     <div class="col-md-4">
                         <div class="card text-white" style="background: linear-gradient(135deg, #2c5282 0%, #2a4365 100%); border: none; border-radius: 15px;">
@@ -75,26 +75,32 @@
                                 <th style="font-weight: 600;">Cliente</th>
                                 <th class="text-center" style="font-weight: 600;">Monto</th>
                                 <th class="text-center" style="font-weight: 600;">Metodo de Pago</th>
+                                <th class="text-center" style="font-weight: 600;">Estado</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr v-if="listaCobros.length === 0">
-                                <td colspan="7" class="text-center text-muted py-5">
+                                <td colspan="8" class="text-center text-muted py-5">
                                     <i class="fa fa-info-circle fa-2x mb-2"></i>
                                     <p class="mb-0">No hay cobros en el rango de fechas seleccionado</p>
                                 </td>
                             </tr>
-                            <tr v-for="(item, index) in listaCobros" :key="index">
+                            <!-- Los cobros ANULADOS se muestran tachados y en gris; no suman en los totales -->
+                            <tr v-for="(item, index) in listaCobros" :key="index" :class="{'text-muted': item.anulado == 1}">
                                 <td class="text-center">{{index + 1}}</td>
                                 <td class="text-center">{{formatearFecha(item.fecha_pago_real)}}</td>
                                 <td class="text-center">{{formatearHora(item.fecha_pago_real)}}</td>
                                 <td class="text-center" style="font-weight: 500;">{{item.documento}}</td>
                                 <td>{{item.cliente}}</td>
-                                <td class="text-end" style="font-weight: 600; color: #28a745;">S/ {{parseFloat(item.monto).toFixed(2)}}</td>
+                                <td class="text-end" style="font-weight: 600;" :style="item.anulado == 1 ? 'color:#6c757d; text-decoration: line-through;' : 'color:#28a745;'">S/ {{parseFloat(item.monto).toFixed(2)}}</td>
                                 <td class="text-center">
                                     <span :class="getBadgeClass(item.tipo_pago)" style="padding: 6px 12px; border-radius: 20px; font-size: 0.85rem;">
                                         {{item.tipo_pago || 'Efectivo'}}
                                     </span>
+                                </td>
+                                <td class="text-center">
+                                    <span v-if="item.anulado == 1" class="badge bg-danger" style="padding: 6px 12px; border-radius: 20px; font-size: 0.85rem;">ANULADO</span>
+                                    <span v-else class="badge bg-success" style="padding: 6px 12px; border-radius: 20px; font-size: 0.85rem;">COBRADO</span>
                                 </td>
                             </tr>
                         </tbody>
@@ -127,9 +133,11 @@
                 fechaHoy() {
                     return '<?php echo date("Y-m-d"); ?>';
                 },
+                // Los totales excluyen los cobros ANULADOS (siguen listados como constancia)
                 totalEfectivo() {
                     let total = 0;
                     this.listaCobros.forEach((cobro) => {
+                        if (cobro.anulado == 1) return;
                         if (!cobro.tipo_pago || cobro.tipo_pago === 'Efectivo') {
                             total += parseFloat(cobro.monto);
                         }
@@ -139,6 +147,7 @@
                 totalOtros() {
                     let total = 0;
                     this.listaCobros.forEach((cobro) => {
+                        if (cobro.anulado == 1) return;
                         if (cobro.tipo_pago && cobro.tipo_pago !== 'Efectivo') {
                             total += parseFloat(cobro.monto);
                         }
@@ -148,6 +157,7 @@
                 totalGeneral() {
                     let total = 0;
                     this.listaCobros.forEach((cobro) => {
+                        if (cobro.anulado == 1) return;
                         total += parseFloat(cobro.monto);
                     });
                     return total.toFixed(2);
@@ -158,7 +168,7 @@
                     if (!this.filtros.fecha_inicio || !this.filtros.fecha_fin) {
                         Swal.fire({
                             icon: 'warning',
-                            title: 'Atenci¨®n',
+                            title: 'Atenciï¿½ï¿½n',
                             text: 'Debes seleccionar ambas fechas'
                         });
                         return;

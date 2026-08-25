@@ -322,17 +322,41 @@ class PagosController extends Controller
             return;
         }
 
-        if ($_POST["tipo"] == 'c') {
-            $sql = "UPDATE cuotas_cotizacion set estado = '0',fecha = 0, monto = '0', tipo_pago=NULL, id_usuario=NULL where cuota_coti_id='{$_POST['id']}'";
-            $result = $this->conectar->query($sql);
+        $id = intval($_POST['id']);
+        $esCoti = ($_POST["tipo"] == 'c');
+        $usuarioAnula = isset($_SESSION['usuario_fac']) ? intval($_SESSION['usuario_fac']) : (isset($_SESSION['usuario_id']) ? intval($_SESSION['usuario_id']) : 0);
 
-            echo json_encode($result);
-        } else {
-            $sql = "UPDATE dias_ventas set estado = '0' where dias_venta_id='{$_POST['id']}'";
-            $result = $this->conectar->query($sql);
-
-            echo json_encode($result);
+        // 1) Guardar el cobro tal como estaba: el pago NO se borra, queda ANULADO y
+        //    sigue visible en Mis Cobros y en el Arqueo (sin sumar en los totales).
+        $tabla = $esCoti ? 'cuotas_cotizacion' : 'dias_ventas';
+        $pk = $esCoti ? 'cuota_coti_id' : 'dias_venta_id';
+        $colDoc = $esCoti ? 'id_coti' : 'id_venta';
+        $rs = $this->conectar->query("SELECT $colDoc AS id_documento, monto, tipo_pago, fecha, fecha_pago_real, id_usuario
+            FROM $tabla WHERE $pk = $id AND estado = '1'");
+        if ($rs && $rs->num_rows > 0) {
+            $cuota = $rs->fetch_assoc();
+            $tipoReg = $esCoti ? 'c' : 'v';
+            $tipoPago = ($cuota['tipo_pago'] === null) ? 'NULL' : "'" . $this->conectar->real_escape_string($cuota['tipo_pago']) . "'";
+            $fechaCuota = empty($cuota['fecha']) || $cuota['fecha'] == '0000-00-00' ? 'NULL' : "'" . $this->conectar->real_escape_string($cuota['fecha']) . "'";
+            $fechaReal = empty($cuota['fecha_pago_real']) ? 'NULL' : "'" . $this->conectar->real_escape_string($cuota['fecha_pago_real']) . "'";
+            $idUsuarioCobro = ($cuota['id_usuario'] === null || $cuota['id_usuario'] === '') ? 'NULL' : intval($cuota['id_usuario']);
+            $idDoc = ($cuota['id_documento'] === null) ? 'NULL' : intval($cuota['id_documento']);
+            $montoCuota = floatval($cuota['monto']);
+            $this->conectar->query("INSERT INTO cobros_anulados
+                (tipo, id_cuota, id_documento, monto, tipo_pago, fecha, fecha_pago_real, id_usuario, id_usuario_anula)
+                VALUES ('$tipoReg', $id, $idDoc, $montoCuota, $tipoPago, $fechaCuota, $fechaReal, $idUsuarioCobro, $usuarioAnula)");
         }
+
+        // 2) La cuota vuelve a quedar PENDIENTE (se conservan monto, fecha y método:
+        //    antes se borraban y se perdía toda la información del cobro).
+        if ($esCoti) {
+            $sql = "UPDATE cuotas_cotizacion SET estado = '0', fecha_pago_real = NULL WHERE cuota_coti_id = $id";
+        } else {
+            $sql = "UPDATE dias_ventas SET estado = '0', fecha_pago_real = NULL WHERE dias_venta_id = $id";
+        }
+        $result = $this->conectar->query($sql);
+
+        echo json_encode($result);
     }
 
     public function editarCuotaCompras()

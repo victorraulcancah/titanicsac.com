@@ -111,3 +111,25 @@ CREATE TABLE IF NOT EXISTS ventas_anuladas (
     motivo VARCHAR(250) DEFAULT NULL,
     PRIMARY KEY (id_venta)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- COBROS ANULADOS (trazabilidad)
+-- Al eliminar un pago ya no se pierde el rastro: se guarda aqui el cobro tal como estaba
+-- y sigue visible en Mis Cobros / Arqueo marcado como ANULADO (sin sumar en los totales).
+-- ============================================================
+CREATE TABLE IF NOT EXISTS cobros_anulados (
+    cobro_anulado_id INT NOT NULL AUTO_INCREMENT,
+    tipo CHAR(1) NOT NULL COMMENT 'v = cuota de venta (dias_ventas), c = cuota de pedido (cuotas_cotizacion)',
+    id_cuota INT NOT NULL COMMENT 'dias_venta_id o cuota_coti_id',
+    id_documento INT DEFAULT NULL COMMENT 'id_venta o id_coti',
+    monto DOUBLE(12,2) NOT NULL DEFAULT 0,
+    tipo_pago VARCHAR(200) DEFAULT NULL,
+    fecha DATE DEFAULT NULL COMMENT 'fecha programada de la cuota',
+    fecha_pago_real DATETIME DEFAULT NULL COMMENT 'cuando se cobro',
+    id_usuario INT DEFAULT NULL COMMENT 'quien cobro',
+    id_usuario_anula INT DEFAULT NULL COMMENT 'quien anulo',
+    fecha_anulacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (cobro_anulado_id),
+    KEY idx_fecha_pago (fecha_pago_real),
+    KEY idx_usuario (id_usuario)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
