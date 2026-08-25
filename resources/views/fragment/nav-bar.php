@@ -261,18 +261,8 @@ $id_role = isset($_SESSION['rol'])?$_SESSION['rol']:1;
         <?php if($id_role == "6"):?>
         <ul class="navbar-nav me-auto mb-2 mb-lg-0 w-100">
             <li class="nav-item">
-                <a class="nav-link" href="<?= DOMINIO ?>almacen/productos">
-                    <i class="ti-calendar"></i>Productos
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="<?= DOMINIO ?>almacen/kardex">
-                    <i class="ti-view-grid"></i>Kardex
-                </a>
-            </li>
-            <li class="nav-item panel-palpitante">
-                <a class="nav-link texto-palpitante" href="<?= DOMINIO ?>almacen/intercambio/productos">
-                    <i class="ti-calendar"></i>Intercambio Productos
+                <a class="nav-link" href="<?= DOMINIO ?>compras">
+                    <i class="fa fa-shopping-cart"></i>COMPRAS
                 </a>
             </li>
         </ul>

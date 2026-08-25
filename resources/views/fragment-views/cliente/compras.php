@@ -474,6 +474,11 @@
             ordering: true,
             searching: true,
             destroy: true,
+            <?php if (isset($_SESSION['rol']) && $_SESSION['rol'] == 6): ?>
+            // ALMACEN (rol 6): solo consulta. Se ocultan las columnas Recepcionar (8) y Editar (9);
+            // se ocultan en vez de quitar los <th> para no desplazar los índices del resto.
+            columnDefs: [{ targets: [8, 9], visible: false }],
+            <?php endif; ?>
             ajax: {
                 url: _URL + "/ajs/prodcutos/compras/render",
                 method: "POST",

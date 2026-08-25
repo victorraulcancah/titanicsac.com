@@ -344,7 +344,8 @@ class ComprasController extends Controller
      */
     public function recepcionRegistrar()
     {
-        if (!isset($_SESSION['rol']) || !in_array($_SESSION['rol'], [1, 6])) {
+        // Solo admin: el rol ALMACEN (6) consulta las compras pero no recepciona
+        if (!isset($_SESSION['rol']) || $_SESSION['rol'] != 1) {
             echo json_encode(['res' => false, 'msg' => 'No tiene permisos para recepcionar mercadería']);
             return;
         }
@@ -446,6 +447,11 @@ class ComprasController extends Controller
 
     public function actualizarCompra()
     {
+        // El rol ALMACEN (6) no edita compras, solo las consulta
+        if (isset($_SESSION['rol']) && $_SESSION['rol'] == 6) {
+            echo json_encode(['resp' => false, 'msj' => 'Su rol no permite editar compras']);
+            return;
+        }
         $id = $_POST['id'];
         $c_compra = new Compra();
         $c_tido = new DocumentoEmpresa();
