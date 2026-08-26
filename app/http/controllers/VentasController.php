@@ -906,6 +906,11 @@ class VentasController extends Controller
             }
             #
             foreach ($cambios_cantidad as $item) {
+                // Las líneas de RECOJO (cantidad negativa) no son devoluciones de la venta:
+                // ya entran al stock y al kardex con el motivo 'Recojo'.
+                if (floatval($item['cantidad']) < 0) {
+                    continue;
+                }
                 $presenta = (isset($item['presenta'])) ? $item['presenta'] : $item['presentacion'];
                 $presenta_cnt = (isset($item['presenta_cnt'])) ? $item['presenta_cnt'] : $item['presentacionCnt'];
                 $presenta_cnt = ($presenta_cnt == 0) ? 1 : $presenta_cnt;
