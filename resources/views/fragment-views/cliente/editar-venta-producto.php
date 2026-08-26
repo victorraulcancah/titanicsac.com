@@ -79,7 +79,7 @@ if (isset($_GET["coti"])) {
                                             <label for="example-text-input" class=" col-form-label">Cantidad</label>
 
                                             <div class="input-group">
-                                                <input @keypress="onlyNumber" required v-model="producto.cantidad" class="form-control text-center" type="text" placeholder="0" id="example-text-input">
+                                                <input @keypress="onlyNumberNeg" required v-model="producto.cantidad" class="form-control text-center" type="text" placeholder="0" id="example-text-input">
                                                 <select v-model="producto.presentacion" class="form-select">
                                                     <option v-for="(item ) in listaOpcionesPResen" :value="item.cod">{{item.nom}}</option>
                                                 </select>
@@ -133,12 +133,12 @@ if (isset($_GET["coti"])) {
                                 <tbody>
                                     <tr v-for="(item,index) in productos">
                                         <td>{{index+1}}</td>
-                                        <td>{{item.descripcion}}</td>
-                                        <td><span v-if="!item.edicion">{{item.cantidad}} {{nombreMedida(item.presenta)}} / {{item.presenta_cnt}}{{item.medida}}</span><input v-if="item.edicion" v-model="item.cantidad"></td>
+                                        <td>{{item.descripcion}} <span v-if="item.cantidad < 0" class="badge bg-danger" title="Recojo: producto que el cliente devuelve. Regresa al stock y se descuenta de la venta">RECOJO</span></td>
+                                        <td><span v-if="!item.edicion" :class="{'text-danger fw-bold': item.cantidad < 0}">{{item.cantidad}} {{nombreMedida(item.presenta)}} / {{item.presenta_cnt}}{{item.medida}}</span><input v-if="item.edicion" v-model="item.cantidad" @keypress="onlyNumberNeg"></td>
                                         <td> </td>
                                         <td><span v-if="!item.edicion" >{{formatoDecimal(item.precioVenta)}}</span><input v-if="item.edicion" v-model="item.precioVenta"></td>
 
-                                        <td>{{formatoDecimal(item.precioVenta*item.cantidad)}}</td>
+                                        <td :class="{'text-danger fw-bold': item.cantidad < 0}">{{formatoDecimal(item.precioVenta*item.cantidad)}}</td>
                                         <td><button @click="eliminarItemPro(index)" type="button" class="btn btn-danger btn-sm">
                                                 <i class="fa fa-times"></i>
                                             </button>
@@ -757,6 +757,16 @@ if (isset($_GET["coti"])) {
                         $event.preventDefault();
                     }
                 },
+                onlyNumberNeg($event) {
+                    // Como onlyNumber, pero admite el signo "-" al inicio. Cantidad NEGATIVA = RECOJO
+                    // (producto que el cliente devuelve): regresa al stock y entra al kardex como 'Recojo'.
+                    let keyCode = ($event.keyCode ? $event.keyCode : $event.which);
+                    let val = ($event.target.value || '') + '';
+                    if (keyCode === 45 && $event.target.selectionStart === 0 && !val.includes('-')) return;
+                    if ((keyCode < 48 || keyCode > 57) && keyCode !== 46) {
+                        $event.preventDefault();
+                    }
+                },
                 eliminarItemPro(index) {
                     this.productos.splice(index, 1)
                 },
@@ -914,7 +924,9 @@ if (isset($_GET["coti"])) {
                         const prod = {
                             ...this.producto
                         }
-                        prod.precioVenta = prod.precioVenta *( prod.cantidad *prod.presentacionCnt)
+                        // Precio por presentación. NO se multiplica por la cantidad: el signo vive
+                        // solo en la cantidad (negativa = RECOJO) y el parcial es precio × cantidad.
+                        prod.precioVenta = prod.precioVenta * prod.presentacionCnt
 
                         this.productos.push(prod)
                         this.limpiasDatos();
