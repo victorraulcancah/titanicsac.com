@@ -21,16 +21,19 @@ class Cobranza
                 CONCAT(c.documento, ' | ', c.datos) AS cliente,
                 c.mercado AS mercado,
                 MAX(v.total) AS total,
-                '' AS vendedor,
+                IFNULL(us_ped.usuario, IFNULL(us_v.usuario, '')) AS vendedor,
                 SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END) AS pagado,
                 (MAX(v.total) - SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END)) AS saldo
             FROM ventas AS v
             INNER JOIN dias_ventas AS dv ON v.id_venta = dv.id_venta 
             INNER JOIN clientes AS c ON v.id_cliente = c.id_cliente
+            LEFT JOIN cotizaciones AS co_v ON co_v.cotizacion_id = v.id_coti
+            LEFT JOIN usuarios AS us_ped ON us_ped.usuario_id = co_v.id_usuario
+            LEFT JOIN usuarios AS us_v ON us_v.usuario_id = v.id_vendedor
             WHERE v.estado = 1 
               AND v.id_tipo_pago = 2  
               AND v.id_empresa = '{$_SESSION['id_empresa']}'
-            GROUP BY v.id_venta, c.datos, c.mercado)
+            GROUP BY v.id_venta, c.datos, c.mercado, us_ped.usuario, us_v.usuario)
             
             UNION ALL
             
@@ -79,17 +82,20 @@ class Cobranza
                 CONCAT(c.documento, ' | ', c.datos) AS cliente,
                 c.mercado AS mercado,
                 MAX(v.total) AS total,
-                '' AS vendedor,
+                IFNULL(us_ped.usuario, IFNULL(us_v.usuario, '')) AS vendedor,
                 SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END) AS pagado,
                 (MAX(v.total) - SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END)) AS saldo
             FROM ventas AS v
             INNER JOIN dias_ventas AS dv ON v.id_venta = dv.id_venta 
             INNER JOIN clientes AS c ON v.id_cliente = c.id_cliente
+            LEFT JOIN cotizaciones AS co_v ON co_v.cotizacion_id = v.id_coti
+            LEFT JOIN usuarios AS us_ped ON us_ped.usuario_id = co_v.id_usuario
+            LEFT JOIN usuarios AS us_v ON us_v.usuario_id = v.id_vendedor
             WHERE v.estado = 1 
               AND v.id_tipo_pago = 2 
               AND v.sucursal = '{$_SESSION['sucursal']}'
               AND v.id_empresa = '{$_SESSION['id_empresa']}'
-            GROUP BY v.id_venta, c.datos, c.mercado)
+            GROUP BY v.id_venta, c.datos, c.mercado, us_ped.usuario, us_v.usuario)
             
             UNION ALL
             
@@ -271,12 +277,15 @@ class Cobranza
                 c.datos AS cliente,
                 c.mercado AS mercado,
                 MAX(v.total) AS total,
-                '' AS vendedor,
+                IFNULL(us_ped.usuario, IFNULL(us_v.usuario, '')) AS vendedor,
                 SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END) AS pagado,
                 (MAX(v.total) - SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END)) AS saldo
             FROM ventas AS v
             INNER JOIN dias_ventas AS dv ON v.id_venta = dv.id_venta 
             INNER JOIN clientes AS c ON v.id_cliente = c.id_cliente
+            LEFT JOIN cotizaciones AS co_v ON co_v.cotizacion_id = v.id_coti
+            LEFT JOIN usuarios AS us_ped ON us_ped.usuario_id = co_v.id_usuario
+            LEFT JOIN usuarios AS us_v ON us_v.usuario_id = v.id_vendedor
             WHERE v.estado = 1 
             AND v.id_tipo_pago = 2 
             AND v.sucursal = '{$_SESSION['sucursal']}'
@@ -287,7 +296,7 @@ class Cobranza
             $whereClientes
             $whereDiasVisita
             $whereRuta
-            GROUP BY v.id_venta , c.datos, c.mercado
+            GROUP BY v.id_venta , c.datos, c.mercado, us_ped.usuario, us_v.usuario
             ORDER BY v.id_venta ASC,c.mercado ASC, c.datos ASC";
 
             $fila = mysqli_query($this->conectar, $sql);
