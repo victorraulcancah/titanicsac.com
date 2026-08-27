@@ -1330,7 +1330,9 @@ if (isset($_GET["coti"])) {
                                     // a venta con cuotas pendientes; la deuda sigue en CxC Ventas)
                                     c.estado = (c.estado == '1') ? '1' : '0';
                                     c.cuotaPagadaOrigen = (c.estado == '1'); // ya cobrada en CxC: no editable
-                                    c.cuotaid = c.cuota_coti_id;
+                                    // El backend ya envía 'cuotaid'; sin él la conversión no reconoce la
+                                    // cuota cobrada y la registraría de nuevo a nombre de quien convierte.
+                                    c.cuotaid = c.cuotaid || c.cuota_coti_id || '';
                                     return c
                                 })
                                 // Si el total ya no coincide con las cuotas del pedido, se reajustan desde el inicio
