@@ -190,6 +190,25 @@ class PagosController extends Controller
             return;
         }
 
+        // Candado anti doble cobro: un pedido YA convertido en venta no se cobra desde aquí;
+        // su deuda (y lo ya cobrado) vive en la venta. Antes de convertir, el cobro del pedido
+        // es el flujo normal y sigue permitido.
+        if ($_POST["tipo"] == 'c') {
+            $idCuotaChk = intval($_POST['id']);
+            $rsConv = $this->conectar->query("SELECT v.serie, v.numero
+                FROM cuotas_cotizacion cc
+                INNER JOIN ventas v ON v.id_coti = cc.id_coti AND v.estado = 1
+                WHERE cc.cuota_coti_id = $idCuotaChk LIMIT 1");
+            if ($rsConv && $rsConv->num_rows > 0) {
+                $vta = $rsConv->fetch_assoc();
+                echo json_encode([
+                    "res" => false,
+                    "error" => "Este pedido ya es la venta {$vta['serie']}-{$vta['numero']}. Cóbrela desde Cuentas por Cobrar de Ventas."
+                ]);
+                return;
+            }
+        }
+
         $rol_usuario = isset($_SESSION['rol']) ? $_SESSION['rol'] : null;
         $es_nuevo = isset($_POST['es_nuevo']) ? $_POST['es_nuevo'] : 0;
 
