@@ -261,8 +261,9 @@ where u.usuario_id = '{$_POST['usr']}'";
     
     public function obtenerRutasClientes(){
         $result = array();
-        $sql="SELECT * FROM rutas_vendedor
-            GROUP BY id_ruta
+        // DISTINCT en vez de GROUP BY: con sql_mode=only_full_group_by el "SELECT *"
+        // rompía la consulta y el filtro de rutas quedaba vacío.
+        $sql="SELECT DISTINCT id_ruta FROM rutas_vendedor
             ORDER BY id_ruta";
         $stm = $this->conexion->query($sql);
         while ($row = $stm->fetch_assoc()){

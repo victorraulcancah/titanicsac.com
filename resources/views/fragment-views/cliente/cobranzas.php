@@ -410,7 +410,8 @@
 
         function listarRutas() {
             $.ajax({
-                url: 'ajs/admin/cliente/rutas',
+                // URL absoluta: siendo relativa fallaba en /cobranzas/ventas (resolvía a /cobranzas/ajs/...)
+                url: _URL + '/ajs/admin/cliente/rutas',
                 method: 'GET',
                 success: function (response) {
                     response = JSON.parse(response);
