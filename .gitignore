@@ -1,1 +1,4 @@
 .well-known.zip
+
+# log de errores PHP (generado en runtime)
+files/log/php-errors.log
