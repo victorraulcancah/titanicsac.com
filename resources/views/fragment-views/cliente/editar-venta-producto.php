@@ -134,9 +134,9 @@ if (isset($_GET["coti"])) {
                                     <tr v-for="(item,index) in productos">
                                         <td>{{index+1}}</td>
                                         <td>{{item.descripcion}} <span v-if="item.cantidad < 0" class="badge bg-danger" title="Recojo: producto que el cliente devuelve. Regresa al stock y se descuenta de la venta">RECOJO</span></td>
-                                        <td><span v-if="!item.edicion" :class="{'text-danger fw-bold': item.cantidad < 0}">{{cantidadFinal(item)}}</span><span v-if="item.edicion" class="text-nowrap d-inline-flex align-items-center gap-1"><input type="number" step="0.01" style="width: 80px;" v-model="item.cantidad" @keypress="onlyNumberNeg" title="Cantidad"> <span>de</span> <input type="number" step="0.01" style="width: 80px;" v-model="item.presenta_cnt" @keypress="onlyNumber" title="Unidad derivada"> {{ item.medida }}</span></td>
+                                        <td><span v-if="!item.edicion" :class="{'text-danger fw-bold': item.cantidad < 0}">{{cantidadFinal(item)}}</span><span v-if="item.edicion" class="text-nowrap"><input type="number" step="0.01" style="width: 95px;" :value="cantidadFinalNum(item)" @keypress="onlyNumberNeg" @change="setCantidadFinal(item, $event.target.value)" title="Cantidad final a entregar"> {{ item.medida }}</span></td>
                                         <td> </td>
-                                        <td><span v-if="!item.edicion" >{{formatoDecimal(item.precioVenta)}}</span><input v-if="item.edicion" v-model="item.precioVenta"></td>
+                                        <td><span v-if="!item.edicion" >{{formatoDecimal(item.precioVenta)}}</span><input v-if="item.edicion" type="number" step="0.01" style="width: 100px;" :value="precioUnitarioNum(item)" @change="setPrecioUnitario(item, $event.target.value)" title="Precio por unidad (ej. por kilo)"></td>
 
                                         <td :class="{'text-danger fw-bold': item.cantidad < 0}">{{formatoDecimal(item.precioVenta*item.cantidad)}}</td>
                                         <td><button @click="eliminarItemPro(index)" type="button" class="btn btn-danger btn-sm">
@@ -756,6 +756,18 @@ if (isset($_GET["coti"])) {
                     if ((keyCode < 48 || keyCode > 57) && keyCode !== 46) { // 46 is dot
                         $event.preventDefault();
                     }
+                },
+                precioUnitarioNum(item) {
+                    // Precio por unidad (ej. por kilo) = precio de la presentación ÷ unidad derivada
+                    let derivada = parseFloat(item.presenta_cnt ?? item.presentacionCnt ?? 1) || 1;
+                    return Math.round((parseFloat(item.precioVenta || 0) / derivada) * 10000) / 10000;
+                },
+                setPrecioUnitario(item, valor) {
+                    // Se escribe el precio por unidad; internamente se guarda el de la presentación
+                    let v = parseFloat(valor);
+                    if (isNaN(v)) return;
+                    let derivada = parseFloat(item.presenta_cnt ?? item.presentacionCnt ?? 1) || 1;
+                    item.precioVenta = Math.round(v * derivada * 10000) / 10000;
                 },
                 cantidadFinal(item) {
                     // Lo que realmente se entrega: cantidad × unidad derivada (ej. 2 × 3 = 6.00 Kilos)
