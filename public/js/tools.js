@@ -105,13 +105,28 @@ function _ajax(url,method,data={},func) {
         data: data,
         success: function (resp) {
             $("#loader-menor").hide()
+            // jQuery puede entregar ya un objeto (si el servidor manda Content-Type json)
+            if (resp !== null && typeof resp === 'object') {
+                func(resp);
+                return;
+            }
             if (isJson(resp)){
                 func(JSON.parse(resp));
             }else{
-                console.log(resp)
-                alertError('ERR','Error en el servidor')
+                console.log('Respuesta no válida de ' + url + ':', resp)
+                // Se muestra el inicio de la respuesta: normalmente es un aviso de PHP
+                // impreso antes del JSON, y así se sabe qué lo causó.
+                var detalle = (typeof resp === 'string' && resp.trim() !== '')
+                    ? String(resp).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().substring(0, 180)
+                    : 'El servidor no devolvió datos.';
+                alertError('ERR', detalle)
             }
 
+        },
+        error: function (xhr) {
+            $("#loader-menor").hide()
+            console.log('Error HTTP en ' + url + ':', xhr.status, xhr.responseText)
+            alertError('ERR', 'No se pudo completar la operación (HTTP ' + xhr.status + '). Verifique si se guardó antes de reintentar.')
         }
     });
 

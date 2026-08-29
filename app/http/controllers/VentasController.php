@@ -1400,6 +1400,9 @@ class VentasController extends Controller
             $resultado["urlFact"] = URL::to('/venta/comprobante/pdf/' . $c_sunat->getIdVenta() . '/' . $c_sunat->getNombreXml());
             $resultado["urlFactd"] = URL::to('/venta/comprobante/pdfd/' . $c_sunat->getIdVenta() . '/' . $c_sunat->getNombreXml());
         }
-        return json_encode($resultado);
+        // JSON_INVALID_UTF8_SUBSTITUTE: si algún texto (nombre de cliente, dirección) viene con
+        // codificación inválida, json_encode devolvía false y el front mostraba "Error en el
+        // servidor" pese a que la venta sí se guardó.
+        return json_encode($resultado, JSON_INVALID_UTF8_SUBSTITUTE);
     }
 }
