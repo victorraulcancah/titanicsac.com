@@ -168,6 +168,13 @@
                         <option value="2">Camión 2</option>
                         <option value="3">Camión 3</option>
                     </select>
+                    <label for="filtro-horario-camion" class="mt-2">Filtrar por horario:</label>
+                    <select id="filtro-horario-camion" class="form-control">
+                        <option value="todos">Todos</option>
+                        <option value="primer_corte">PRIMER CORTE — Pedidos base (00:00 - 08:00 día carga)</option>
+                        <option value="segundo_corte">SEGUNDO CORTE — Aumentos (08:00 - 15:00 día carga)</option>
+                        <option value="tercer_corte">TERCER CORTE — Aumentos (15:00 - 23:59 día carga)</option>
+                    </select>
                 </div>
                 <div id="imprimirPorRuta" class="mt-3" style="display:none;">
                     <label for="ruta">Rutas:</label>
@@ -997,7 +1004,11 @@
             let mercado = $("#mercado").val();
             let medida = $("#medida").val();
             let tipo = $('#camionconsolodidado').val();
-            let horario = $("#filtro-horario").val();
+            // El corte de horario se puede elegir tanto en la pestaña Por Mercado como en Por Camión:
+            // se toma el de la pestaña visible.
+            let horario = $("#imprimirPorCamion").is(":visible")
+                ? $("#filtro-horario-camion").val()
+                : $("#filtro-horario").val();
             const { PDFDocument } = PDFLib;
             const combinedPdf = await PDFDocument.create();
 
