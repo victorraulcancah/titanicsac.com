@@ -195,15 +195,22 @@ class PagosController extends Controller
         // es el flujo normal y sigue permitido.
         if ($_POST["tipo"] == 'c') {
             $idCuotaChk = intval($_POST['id']);
-            $rsConv = $this->conectar->query("SELECT v.serie, v.numero
+            // Solo cuentan las ventas VIGENTES (estado 1). Si la venta fue anulada, el pedido
+            // vuelve a ser cobrable. Un mismo pedido puede tener varias ventas (datos antiguos),
+            // por eso se listan todas las vigentes: así se sabe cuál sigue activa.
+            $rsConv = $this->conectar->query("SELECT v.id_venta, v.serie, v.numero
                 FROM cuotas_cotizacion cc
                 INNER JOIN ventas v ON v.id_coti = cc.id_coti AND v.estado = 1
-                WHERE cc.cuota_coti_id = $idCuotaChk LIMIT 1");
+                WHERE cc.cuota_coti_id = $idCuotaChk");
             if ($rsConv && $rsConv->num_rows > 0) {
-                $vta = $rsConv->fetch_assoc();
+                $docs = [];
+                foreach ($rsConv as $vta) {
+                    $docs[] = $vta['serie'] . '-' . $vta['numero'] . ' (ID ' . $vta['id_venta'] . ')';
+                }
                 echo json_encode([
                     "res" => false,
-                    "error" => "Este pedido ya es la venta {$vta['serie']}-{$vta['numero']}. Cóbrela desde Cuentas por Cobrar de Ventas."
+                    "error" => "Este pedido tiene una venta vigente: " . implode(', ', $docs)
+                        . ". Cóbrela desde Cuentas por Cobrar de Ventas, o anule esa venta si desea cobrar aquí."
                 ]);
                 return;
             }
