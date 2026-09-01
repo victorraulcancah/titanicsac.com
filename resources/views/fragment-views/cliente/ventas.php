@@ -777,6 +777,12 @@
                     targets: 9,
                     render: function(data, type, row, meta) {
                         /*  console.log(row[7].split('-')) */
+                        // Protección: si el dato viniera vacío (venta sin registro en ventas_sunat)
+                        // se reconstruye con el id de la venta; antes un null rompía el render
+                        // y la tabla se quedaba en "Processing...".
+                        if (data === null || data === undefined || data === '') {
+                            data = row[0] + '---';
+                        }
                         if (row[8] == 1) {
                             let estadoSunat = row[7].split('-')[0]
                             /*      console.log(estadoSunat); */
