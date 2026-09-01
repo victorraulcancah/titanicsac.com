@@ -399,6 +399,14 @@ class VentasController extends Controller
         $sucursal = $_SESSION['sucursal'];
         $idUsuario = isset($_SESSION['usuario_fac']) ? intval($_SESSION['usuario_fac']) : (isset($_SESSION['usuario_id']) ? intval($_SESSION['usuario_id']) : 0);
 
+        // El proceso puede tardar: se libera el bloqueo de la sesión para que el resto del
+        // sistema siga respondiendo mientras tanto (PHP bloquea la sesión por usuario y
+        // dejaba "cargando" cualquier otra pantalla hasta terminar).
+        if (function_exists('session_write_close')) {
+            @session_write_close();
+        }
+        set_time_limit(0);
+
         // De los marcados, solo los que siguen SIN venta vigente y tienen productos
         $sqlPedidos = "SELECT co.* FROM cotizaciones co
             WHERE co.cotizacion_id IN ($idsSql)
@@ -407,6 +415,17 @@ class VentasController extends Controller
               AND NOT EXISTS (SELECT 1 FROM ventas v WHERE v.id_coti = co.cotizacion_id AND v.estado = 1)
               AND EXISTS (SELECT 1 FROM productos_cotis pc WHERE pc.id_coti = co.cotizacion_id)
             ORDER BY co.cotizacion_id ASC";
+        // Los que se saltan por tener ya una venta vigente se calculan ANTES de convertir
+        // (si se hiciera después, los recién convertidos aparecerían aquí por error)
+        $rsOmit = $this->conexion->query("SELECT co.numero FROM cotizaciones co
+            WHERE co.cotizacion_id IN ($idsSql)
+              AND EXISTS (SELECT 1 FROM ventas v WHERE v.id_coti = co.cotizacion_id AND v.estado = 1)");
+        if ($rsOmit) {
+            foreach ($rsOmit as $o) {
+                $resultado['omitidos'][] = $o['numero'];
+            }
+        }
+
         $rsPedidos = $this->conexion->query($sqlPedidos);
         if (!$rsPedidos) {
             $resultado['msj'] = 'No se pudieron leer los pedidos: ' . $this->conexion->error;
@@ -498,16 +517,6 @@ class VentasController extends Controller
             }
         }
 
-        // De los marcados, los que se saltaron por tener ya una venta vigente
-        $rsOmit = $this->conexion->query("SELECT co.numero FROM cotizaciones co
-            WHERE co.cotizacion_id IN ($idsSql)
-              AND EXISTS (SELECT 1 FROM ventas v WHERE v.id_coti = co.cotizacion_id AND v.estado = 1)");
-        if ($rsOmit) {
-            foreach ($rsOmit as $o) {
-                $resultado['omitidos'][] = $o['numero'];
-            }
-        }
-
         $resultado['res'] = true;
         $resultado['msj'] = "Se convirtieron {$resultado['convertidos']} pedido(s) en venta.";
         return json_encode($resultado, JSON_INVALID_UTF8_SUBSTITUTE);
@@ -561,7 +570,10 @@ class VentasController extends Controller
         // ventas (antes el "where sucursal=" reventaba la consulta y DataTables recibía "Invalid JSON")
         $where = ($_SESSION['rol'] == 1) ? "" : "where id_venta in (select id_venta from ventas where sucursal = {$_SESSION["sucursal"]}) ";
         ob_start();
-        $table_data->get("view_ventas", "id_venta", [
+        // Se cuenta por cod_v y no por id_venta: en la vista, id_venta es un CONCAT con
+        // nombre_xml y queda NULL cuando la venta no tiene registro en ventas_sunat,
+        // por lo que COUNT(id_venta) devolvía un total menor al real.
+        $table_data->get("view_ventas", "cod_v", [
             "cod_v",
             "sn_v",
             "fecha_emision",
@@ -594,6 +606,12 @@ class VentasController extends Controller
                 }
             }
             foreach ($json['aaData'] as &$fila) {
+                // La columna 9 (id_venta) es un CONCAT con nombre_xml: si la venta no tiene
+                // registro en ventas_sunat llega NULL y el front fallaba al hacer split('--'),
+                // dejando la tabla en "Processing...". Se reconstruye con el id real (columna 0).
+                if ($fila[9] === null || $fila[9] === '') {
+                    $fila[9] = $fila[0] . '---';
+                }
                 $fila[] = isset($pedidos[intval($fila[9])]) ? $pedidos[intval($fila[9])] : '';
             }
             unset($fila);
