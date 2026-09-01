@@ -7,6 +7,8 @@ Route::post('/ajs/generar/txt/ventareporte',"GeneradoresController@generarTextLi
 
 Route::get('/ajs/ventas',"VentasController@listarVentas")->Middleware([ValidarTokenMiddleware::class]);
 Route::post('/ajs/ventas/add',"VentasController@guardarVentas")->Middleware([ValidarTokenMiddleware::class]);
+Route::post('/ajs/ventas/masivo/listar',"VentasController@listarPedidosParaVender")->Middleware([ValidarTokenMiddleware::class]);
+Route::post('/ajs/ventas/masivo',"VentasController@convertirMasivo")->Middleware([ValidarTokenMiddleware::class]);
 Route::post('/ajs/ingreso/almacen/add',"VentasController@ingresoAlmacen")->Middleware([ValidarTokenMiddleware::class]);
 Route::post('/ajs/egreso/almacen/add',"VentasController@egresoAlmacen")->Middleware([ValidarTokenMiddleware::class]);
 Route::post('/ajs/ventas/servicios/edit',"VentasController@editVentaServicio")->Middleware([ValidarTokenMiddleware::class]);

@@ -28,6 +28,9 @@
                         <i class="fa fa-plus "></i> Nuevo Pedido
                     </a>
                     <?php endif; ?>
+                    <?php if ($_SESSION["rol"] != 3): // el vendedor no convierte pedidos ?>
+                        <button id="btn-venta-masiva" class="btn btn-success"><i class="fa fa-bolt"></i> Vender Masivo</button>
+                    <?php endif; ?>
                     <?php if ($_SESSION["rol"] == 1): ?>
                         <button id="ventas-reporte" class="btn btn-info"><i class="fa fa-file-pdf-o"></i> Exportar Reporte de Vendedores</button>
                         <button id="imprimir" class="btn btn-success"><i class="fa fa-print"></i> Imprimir PDFs</button>
@@ -106,6 +109,62 @@
                         <tbody></tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Conversión masiva: convierte en venta todos los pedidos del rango que aún no tengan venta -->
+<div class="modal fade" id="modal-venta-masiva" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable modal-fullscreen-md-down">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Vender Masivo</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2 align-items-end">
+                    <div class="col-6 col-md-3">
+                        <label for="vm_desde" class="form-label">Fecha inicio</label>
+                        <input type="date" id="vm_desde" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <label for="vm_hasta" class="form-label">Fecha fin</label>
+                        <input type="date" id="vm_hasta" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-12 col-md-3 d-grid">
+                        <button type="button" class="btn btn-primary btn-sm" id="vm_buscar"><i class="fa fa-search"></i> Buscar pedidos</button>
+                    </div>
+                    <div class="col-12 col-md-3 text-md-end">
+                        <span id="vm_contador" class="badge bg-secondary">0 seleccionados</span>
+                    </div>
+                </div>
+
+                <div id="vm_resultado" class="mt-3"></div>
+
+                <div class="table-responsive mt-2">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width:38px;" class="text-center"><input type="checkbox" id="vm_todos" title="Marcar todos"></th>
+                                <th>Pedido</th>
+                                <th>Fecha</th>
+                                <th>Cliente</th>
+                                <th class="text-center">Items</th>
+                                <th class="text-end">Total</th>
+                                <th>Vendedor</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vm_lista">
+                            <tr><td colspan="8" class="text-muted text-center">Elija el rango de fechas y pulse "Buscar pedidos".</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success" id="vm_convertir" disabled><i class="fa fa-bolt"></i> Convertir seleccionados</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
@@ -517,6 +576,115 @@
         $("#f_camion").val("");
         $("#f_dia").val("");
         tabla.ajax.reload();
+    });
+
+    // Conversión masiva de pedidos a venta
+    $("#btn-venta-masiva").on("click", function () {
+        $("#vm_resultado").html("");
+        // Si están los filtros de reparto, se proponen sus fechas
+        if ($("#f_desde").length) {
+            $("#vm_desde").val($("#f_desde").val());
+            $("#vm_hasta").val($("#f_hasta").val());
+        }
+        $("#modal-venta-masiva").modal("show");
+    });
+
+    function vmActualizarContador() {
+        var n = $(".vm-chk:checked").length;
+        $("#vm_contador").text(n + " seleccionado" + (n === 1 ? "" : "s"));
+        $("#vm_convertir").prop("disabled", n === 0);
+    }
+
+    // Paso 1: listar los pedidos del rango
+    $("#vm_buscar").on("click", function () {
+        var desde = $("#vm_desde").val();
+        var hasta = $("#vm_hasta").val();
+        if (!desde || !hasta) {
+            alertAdvertencia("Indique la fecha de inicio y la fecha fin");
+            return;
+        }
+        $("#vm_resultado").html("");
+        $("#vm_todos").prop("checked", false);
+        $("#vm_lista").html('<tr><td colspan="8" class="text-center text-muted"><i class="fa fa-spinner fa-spin"></i> Buscando...</td></tr>');
+        _ajax("/ajs/ventas/masivo/listar", "POST", { desde: desde, hasta: hasta }, function (resp) {
+            if (!resp.res) {
+                $("#vm_lista").html('<tr><td colspan="8" class="text-danger text-center">' + (resp.msj || 'Error') + '</td></tr>');
+                vmActualizarContador();
+                return;
+            }
+            if (!resp.pedidos.length) {
+                $("#vm_lista").html('<tr><td colspan="8" class="text-muted text-center">No hay pedidos en ese rango</td></tr>');
+                vmActualizarContador();
+                return;
+            }
+            var html = '';
+            resp.pedidos.forEach(function (p) {
+                var vendido = p.venta ? true : false;
+                var sinItems = parseInt(p.items) === 0;
+                var bloquea = vendido || sinItems;
+                var estado = vendido
+                    ? '<span class="badge bg-secondary" title="Ya tiene venta vigente"><i class="fa fa-lock"></i> ' + p.venta + '</span>'
+                    : (sinItems ? '<span class="badge bg-warning text-dark">Sin productos</span>'
+                                : '<span class="badge bg-success">Por vender</span>');
+                html += '<tr class="' + (bloquea ? 'text-muted' : '') + '">'
+                    + '<td class="text-center">' + (bloquea ? '' : '<input type="checkbox" class="vm-chk" value="' + p.cotizacion_id + '">') + '</td>'
+                    + '<td>#' + p.numero + '</td>'
+                    + '<td>' + p.fecha + '</td>'
+                    + '<td>' + p.cliente + '</td>'
+                    + '<td class="text-center">' + p.items + '</td>'
+                    + '<td class="text-end">' + parseFloat(p.total).toFixed(2) + '</td>'
+                    + '<td>' + p.vendedor + '</td>'
+                    + '<td>' + estado + '</td>'
+                    + '</tr>';
+            });
+            $("#vm_lista").html(html);
+            vmActualizarContador();
+        });
+    });
+
+    $("#vm_todos").on("change", function () {
+        $(".vm-chk").prop("checked", $(this).is(":checked"));
+        vmActualizarContador();
+    });
+    $("#vm_lista").on("change", ".vm-chk", vmActualizarContador);
+
+    // Paso 2: convertir solo los marcados
+    $("#vm_convertir").on("click", function () {
+        var ids = $(".vm-chk:checked").map(function () { return this.value; }).get();
+        if (!ids.length) {
+            alertAdvertencia("Marque al menos un pedido");
+            return;
+        }
+        Swal.fire({
+            title: '¿Convertir ' + ids.length + ' pedido(s) en venta?',
+            text: 'Esta acción no se puede deshacer en bloque.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, convertir'
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            var $btn = $("#vm_convertir").prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i> Convirtiendo...');
+            _ajax("/ajs/ventas/masivo", "POST", { ids: ids.join(',') }, function (resp) {
+                $btn.html('<i class="fa fa-bolt"></i> Convertir seleccionados');
+                if (!resp.res) {
+                    alertError('ERR', resp.msj || 'No se pudo convertir');
+                    vmActualizarContador();
+                    return;
+                }
+                var html = '<div class="alert alert-success mb-2">' + resp.msj + '</div>';
+                if (resp.omitidos && resp.omitidos.length) {
+                    html += '<div class="alert alert-warning mb-2">Ya tenían venta (' + resp.omitidos.length + '): #' + resp.omitidos.join(', #') + '</div>';
+                }
+                if (resp.errores && resp.errores.length) {
+                    html += '<div class="alert alert-danger mb-0">Con problemas:<br>' + resp.errores.join('<br>') + '</div>';
+                }
+                $("#vm_resultado").html(html);
+                tabla.ajax.reload(null, false);
+                $("#vm_buscar").trigger("click"); // refresca la lista con los estados actualizados
+            });
+        });
     });
 
     // Mostrar el modal para imprimir logistico

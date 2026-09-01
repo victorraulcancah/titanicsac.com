@@ -324,6 +324,195 @@ class VentasController extends Controller
         return json_encode($resultado);
     }
 
+    /**
+     * Lista los pedidos de un rango de fechas para la venta masiva: se muestran todos y
+     * cada uno indica si ya tiene una venta vigente (esos no se pueden volver a vender).
+     */
+    public function listarPedidosParaVender()
+    {
+        if (!isset($_SESSION['rol']) || $_SESSION['rol'] == 3) {
+            return json_encode(["res" => false, "msj" => "Su rol no permite convertir pedidos en venta"]);
+        }
+        $desde = isset($_POST['desde']) ? trim($_POST['desde']) : '';
+        $hasta = isset($_POST['hasta']) ? trim($_POST['hasta']) : '';
+        if ($desde === '' || $hasta === '') {
+            return json_encode(["res" => false, "msj" => "Indique la fecha de inicio y la fecha fin"]);
+        }
+        $desdeEsc = $this->conexion->real_escape_string($desde);
+        $hastaEsc = $this->conexion->real_escape_string($hasta);
+        $idEmpresa = $_SESSION['id_empresa'];
+
+        $sql = "SELECT co.cotizacion_id, co.numero, DATE(COALESCE(co.fecha_registro, co.fecha)) AS fecha,
+                    co.total,
+                    CONCAT(IFNULL(c.documento,''), ' | ', IFNULL(c.datos,'SIN CLIENTE')) AS cliente,
+                    IFNULL(u.usuario,'') AS vendedor,
+                    (SELECT COUNT(*) FROM productos_cotis pc WHERE pc.id_coti = co.cotizacion_id) AS items,
+                    (SELECT CONCAT(v.serie,'-',v.numero) FROM ventas v
+                      WHERE v.id_coti = co.cotizacion_id AND v.estado = 1 LIMIT 1) AS venta
+                FROM cotizaciones co
+                LEFT JOIN clientes c ON c.id_cliente = co.id_cliente
+                LEFT JOIN usuarios u ON u.usuario_id = co.id_usuario
+                WHERE co.id_empresa = '$idEmpresa'
+                  AND DATE(COALESCE(co.fecha_registro, co.fecha)) BETWEEN '$desdeEsc' AND '$hastaEsc'
+                  AND co.estado <> 2
+                  -- Solo los pendientes: los que ya tienen venta vigente no se listan
+                  AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1)
+                ORDER BY co.cotizacion_id ASC
+                LIMIT 500";
+        $rs = $this->conexion->query($sql);
+        if (!$rs) {
+            return json_encode(["res" => false, "msj" => "No se pudieron leer los pedidos: " . $this->conexion->error]);
+        }
+        return json_encode(["res" => true, "pedidos" => $rs->fetch_all(MYSQLI_ASSOC)], JSON_INVALID_UTF8_SUBSTITUTE);
+    }
+
+    /**
+     * Convierte en VENTA los pedidos de un rango de fechas.
+     * Un pedido que YA tiene una venta vigente NO se vuelve a vender: se omite y se informa
+     * en el resumen ("Ya tenían venta"), mientras el resto del rango se convierte igual.
+     * Aplica las mismas reglas que la conversión individual: Nota de Venta sin IGV, correlativo
+     * que avanza, descuento de stock + kardex, y las cuotas del pedido pasan a la venta
+     * conservando su estado (las ya cobradas mantienen usuario, fecha y método originales).
+     */
+    public function convertirMasivo()
+    {
+        $resultado = ["res" => false, "convertidos" => 0, "omitidos" => [], "errores" => []];
+
+        if (!isset($_SESSION['rol']) || $_SESSION['rol'] == 3) {
+            $resultado['msj'] = 'Su rol no permite convertir pedidos en venta';
+            return json_encode($resultado);
+        }
+
+        // Se convierten SOLO los pedidos marcados en la lista
+        $idsRaw = isset($_POST['ids']) ? $_POST['ids'] : '';
+        $ids = array_values(array_filter(array_map('intval', explode(',', $idsRaw))));
+        if (count($ids) == 0) {
+            $resultado['msj'] = 'Seleccione al menos un pedido';
+            return json_encode($resultado);
+        }
+        if (count($ids) > 200) {
+            $resultado['msj'] = 'Seleccione como máximo 200 pedidos por vez';
+            return json_encode($resultado);
+        }
+        $idsSql = implode(',', $ids);
+        $idEmpresa = $_SESSION['id_empresa'];
+        $sucursal = $_SESSION['sucursal'];
+        $idUsuario = isset($_SESSION['usuario_fac']) ? intval($_SESSION['usuario_fac']) : (isset($_SESSION['usuario_id']) ? intval($_SESSION['usuario_id']) : 0);
+
+        // De los marcados, solo los que siguen SIN venta vigente y tienen productos
+        $sqlPedidos = "SELECT co.* FROM cotizaciones co
+            WHERE co.cotizacion_id IN ($idsSql)
+              AND co.id_empresa = '$idEmpresa'
+              AND co.estado <> 2
+              AND NOT EXISTS (SELECT 1 FROM ventas v WHERE v.id_coti = co.cotizacion_id AND v.estado = 1)
+              AND EXISTS (SELECT 1 FROM productos_cotis pc WHERE pc.id_coti = co.cotizacion_id)
+            ORDER BY co.cotizacion_id ASC";
+        $rsPedidos = $this->conexion->query($sqlPedidos);
+        if (!$rsPedidos) {
+            $resultado['msj'] = 'No se pudieron leer los pedidos: ' . $this->conexion->error;
+            return json_encode($resultado);
+        }
+        $pedidos = $rsPedidos->fetch_all(MYSQLI_ASSOC);
+        if (count($pedidos) == 0) {
+            $resultado['res'] = true;
+            $resultado['msj'] = 'Ninguno de los pedidos seleccionados se pudo convertir (ya tienen venta o no tienen productos)';
+            return json_encode($resultado);
+        }
+
+        $c_tido = new DocumentoEmpresa();
+        $fechaAhora = date('Y-m-d H:i:s');
+
+        foreach ($pedidos as $ped) {
+            $idCoti = intval($ped['cotizacion_id']);
+            try {
+                // Correlativo del documento (Nota de Venta = 6)
+                $c_tido->setIdEmpresa($idEmpresa);
+                $c_tido->setIdTido(6);
+                $c_tido->obtenerDatos();
+                $serie = $this->conexion->real_escape_string($c_tido->getSerie());
+                $numero = $this->conexion->real_escape_string($c_tido->getNumero());
+
+                $fechaEmision = !empty($ped['fecha']) ? $ped['fecha'] : date('Y-m-d');
+                $direccion = $this->conexion->real_escape_string($ped['direccion'] ?? '');
+                $observacion = $this->conexion->real_escape_string($ped['observacion'] ?? '');
+                $moneda = intval($ped['moneda']) > 0 ? intval($ped['moneda']) : 1;
+                $tc = floatval($ped['cm_tc']) > 0 ? floatval($ped['cm_tc']) : 1;
+                $tipoPago = intval($ped['id_tipo_pago']) > 0 ? intval($ped['id_tipo_pago']) : 2;
+                $total = floatval($ped['total']);
+
+                // Nota de Venta: sin IGV
+                $sqlVenta = "INSERT INTO ventas SET
+                    id_tido = 6, id_tipo_pago = '$tipoPago', fecha_emision = '$fechaEmision',
+                    fecha_vencimiento = '$fechaEmision', dias_pagos = '', direccion = '$direccion',
+                    serie = '$serie', numero = '$numero', id_cliente = '{$ped['id_cliente']}',
+                    total = '$total', estado = '1', enviado_sunat = '0', id_empresa = '$idEmpresa',
+                    sucursal = '$sucursal', apli_igv = '0', observacion = '$observacion', igv = '0',
+                    moneda = '$moneda', cm_tc = '$tc', id_coti = '$idCoti', id_vendedor = '$idUsuario'";
+                if (!$this->conexion->query($sqlVenta)) {
+                    $resultado['errores'][] = "Pedido #{$ped['numero']}: " . $this->conexion->error;
+                    continue;
+                }
+                $idVenta = $this->conexion->insert_id;
+                $c_tido->incrementarNumero();
+
+                // Detalle: descuenta stock y registra kardex (Venta / Recojo si es negativo)
+                $c_detalle = new ProductoVenta();
+                $c_detalle->setIdVenta($idVenta);
+                $rsProd = $this->conexion->query("SELECT * FROM productos_cotis WHERE id_coti = $idCoti");
+                foreach ($rsProd as $pr) {
+                    $presentaCnt = ($pr['presenta_cnt'] == 0) ? 1 : $pr['presenta_cnt'];
+                    $c_detalle->setIdProducto($pr['id_producto']);
+                    $c_detalle->setCantidad($pr['cantidad']);
+                    $c_detalle->setCosto($pr['costo']);
+                    $c_detalle->setMedida($pr['medida']);
+                    $c_detalle->setPresenta($pr['presenta']);
+                    $c_detalle->setPresentaCnt($presentaCnt);
+                    $c_detalle->setPrecio($pr['precio']);
+                    $c_detalle->setPrecioUsado('1');
+                    $c_detalle->insertar();
+                }
+
+                // Cuotas: las ya cobradas conservan usuario, fecha y método originales
+                $rsCuotas = $this->conexion->query("SELECT * FROM cuotas_cotizacion WHERE id_coti = $idCoti");
+                foreach ($rsCuotas as $cu) {
+                    $monto = floatval($cu['monto']);
+                    if ($monto <= 0) {
+                        continue;
+                    }
+                    $pagada = ($cu['estado'] == '1' && !empty($cu['fecha_pago_real']));
+                    $estadoCuota = $pagada ? '1' : '0';
+                    $usuarioCuota = $pagada && !empty($cu['id_usuario']) ? intval($cu['id_usuario']) : $idUsuario;
+                    $metodoCuota = $this->conexion->real_escape_string($cu['tipo_pago'] ?? '');
+                    $fechaCuota = (empty($cu['fecha']) || $cu['fecha'] == '0000-00-00') ? $fechaEmision : $cu['fecha'];
+                    $fechaRealSql = $pagada ? "'" . $this->conexion->real_escape_string($cu['fecha_pago_real']) . "'" : 'NULL';
+                    $this->conexion->query("INSERT INTO dias_ventas SET id_venta = '$idVenta',
+                        monto = '$monto', fecha = '$fechaCuota', estado = '$estadoCuota',
+                        tipo_pago = '$metodoCuota', id_usuario = '$usuarioCuota',
+                        fecha_pago_real = $fechaRealSql");
+                }
+
+                $this->conexion->query("UPDATE cotizaciones SET estado = 1 WHERE cotizacion_id = $idCoti");
+                $resultado['convertidos']++;
+            } catch (Throwable $e) {
+                $resultado['errores'][] = "Pedido #{$ped['numero']}: " . $e->getMessage();
+            }
+        }
+
+        // De los marcados, los que se saltaron por tener ya una venta vigente
+        $rsOmit = $this->conexion->query("SELECT co.numero FROM cotizaciones co
+            WHERE co.cotizacion_id IN ($idsSql)
+              AND EXISTS (SELECT 1 FROM ventas v WHERE v.id_coti = co.cotizacion_id AND v.estado = 1)");
+        if ($rsOmit) {
+            foreach ($rsOmit as $o) {
+                $resultado['omitidos'][] = $o['numero'];
+            }
+        }
+
+        $resultado['res'] = true;
+        $resultado['msj'] = "Se convirtieron {$resultado['convertidos']} pedido(s) en venta.";
+        return json_encode($resultado, JSON_INVALID_UTF8_SUBSTITUTE);
+    }
+
     public function anularVenta()
     {
         $this->venta->setIdVenta($_POST['iventa']);
