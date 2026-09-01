@@ -570,6 +570,25 @@ class VentasController extends Controller
         // ventas (antes el "where sucursal=" reventaba la consulta y DataTables recibía "Invalid JSON")
         $where = ($_SESSION['rol'] == 1) ? "" : "where id_venta in (select id_venta from ventas where sucursal = {$_SESSION["sucursal"]}) ";
         ob_start();
+        // El buscador también encuentra por NÚMERO DE PEDIDO: como ese dato no está en
+        // view_ventas, se resuelven aquí las ventas cuyo pedido coincide y se pasan como
+        // condición extra de la búsqueda.
+        $orPedido = "";
+        $termino = isset($_GET['sSearch']) ? trim($_GET['sSearch']) : '';
+        if ($termino !== '') {
+            $terminoEsc = $this->conexion->real_escape_string($termino);
+            $rsPed = $this->conexion->query("SELECT v.id_venta FROM ventas v
+                INNER JOIN cotizaciones co ON co.cotizacion_id = v.id_coti
+                WHERE co.numero LIKE '%$terminoEsc%' LIMIT 5000");
+            if ($rsPed && $rsPed->num_rows > 0) {
+                $idsPed = [];
+                foreach ($rsPed as $rp) {
+                    $idsPed[] = intval($rp['id_venta']);
+                }
+                $orPedido = "cod_v IN (" . implode(',', $idsPed) . ")";
+            }
+        }
+
         // Se cuenta por cod_v y no por id_venta: en la vista, id_venta es un CONCAT con
         // nombre_xml y queda NULL cuando la venta no tiene registro en ventas_sunat,
         // por lo que COUNT(id_venta) devolvía un total menor al real.
@@ -584,7 +603,7 @@ class VentasController extends Controller
             "doc_ventae",
             "estado",
             "id_venta",
-        ], $where);
+        ], $where, $orPedido);
         $salida = ob_get_clean();
 
         // Columna extra "Pedido": número del pedido (cotización) del que se generó cada venta.
@@ -593,7 +612,9 @@ class VentasController extends Controller
         $posJson = strpos($salida, '{"sEcho"');
         $json = ($posJson !== false) ? json_decode(substr($salida, $posJson), true) : null;
         if (is_array($json) && !empty($json['aaData'])) {
-            $ids = array_values(array_filter(array_map(function ($fila) { return intval($fila[9]); }, $json['aaData'])));
+            // El id se toma de la columna 0 (cod_v): la 9 es un CONCAT que llega nulo cuando la
+            // venta no tiene registro en ventas_sunat, y entonces no se hallaba su pedido.
+            $ids = array_values(array_filter(array_map(function ($fila) { return intval($fila[0]); }, $json['aaData'])));
             $pedidos = [];
             if (!empty($ids)) {
                 $rs = $this->conexion->query("SELECT v.id_venta, co.numero FROM ventas v
@@ -612,7 +633,7 @@ class VentasController extends Controller
                 if ($fila[9] === null || $fila[9] === '') {
                     $fila[9] = $fila[0] . '---';
                 }
-                $fila[] = isset($pedidos[intval($fila[9])]) ? $pedidos[intval($fila[9])] : '';
+                $fila[] = isset($pedidos[intval($fila[0])]) ? $pedidos[intval($fila[0])] : '';
             }
             unset($fila);
             $salida = json_encode($json);

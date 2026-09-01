@@ -18,7 +18,7 @@ class TableData {
 		}				
 	}	
     // se agrego el where
-	public function get($table, $index_column, $columns, $where = "") {
+	public function get($table, $index_column, $columns, $where = "", $orExtra = "") {
         // Paging
         $sLimit = "";
         if ( isset( $_GET['iDisplayStart'] ) && $_GET['iDisplayLength'] != '-1' ) {
@@ -46,14 +46,21 @@ class TableData {
         $sWhere = $where;
 
         if ( isset($_GET['sSearch']) && $_GET['sSearch'] != "" ) {
-            $sWhere = "WHERE (";
+            $sBusqueda = "(";
             for ( $i=0 ; $i<count($columns) ; $i++ ) {
                 if ( isset($_GET['bSearchable_'.$i]) && $_GET['bSearchable_'.$i] == "true" ) {
-                    $sWhere .= "`".$columns[$i]."` LIKE :search OR ";
+                    $sBusqueda .= "`".$columns[$i]."` LIKE :search OR ";
                 }
             }
-            $sWhere = substr_replace( $sWhere, "", -3 );
-            $sWhere .= ')';
+            $sBusqueda = substr_replace( $sBusqueda, "", -3 );
+            // $orExtra: condición adicional que también satisface la búsqueda (ej. buscar por
+            // un dato que no está en la tabla/vista listada)
+            if ( $orExtra != "" ) {
+                $sBusqueda .= " OR (".$orExtra.")";
+            }
+            $sBusqueda .= ')';
+            // Se conserva el filtro base ($where, ej. la sucursal) en vez de reemplazarlo
+            $sWhere = ($where != "") ? $where." AND ".$sBusqueda : "WHERE ".$sBusqueda;
         }
 
         // Individual column filtering
