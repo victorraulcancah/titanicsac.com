@@ -146,9 +146,12 @@
                         </select>
                     </div>
                     <div class="col-6 col-md-2">
-                        <label for="vm_mercado" class="form-label">Mercado</label>
-                        <select id="vm_mercado" class="form-select form-select-sm">
+                        <label for="vm_vehiculo" class="form-label">Vehículo</label>
+                        <select id="vm_vehiculo" class="form-select form-select-sm">
                             <option value="">Todos</option>
+                            <option value="1">Camión 1</option>
+                            <option value="2">Camión 2</option>
+                            <option value="3">Camión 3</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-2 d-grid">
@@ -170,7 +173,7 @@
                                 <th>Fecha</th>
                                 <th>Cliente</th>
                                 <th>Día visita</th>
-                                <th class="text-center">Mercado</th>
+                                <th class="text-center">Ruta</th>
                                 <th class="text-center">Items</th>
                                 <th class="text-end">Total</th>
                                 <th>Vendedor</th>
@@ -599,32 +602,6 @@
         tabla.ajax.reload();
     });
 
-    // Los mercados se cargan una sola vez, la primera vez que se abre el modal
-    var vmMercadosCargados = false;
-    function vmCargarMercados() {
-        if (vmMercadosCargados) return;
-        vmMercadosCargados = true;
-        $.ajax({
-            url: '/ajs/admin/cliente/mercados',
-            method: 'GET',
-            success: function (response) {
-                try { if (typeof response === "string") response = JSON.parse(response); } catch (e) { return; }
-                var lista = [];
-                $.each(response, function (idx, res) {
-                    if (res.mercado) lista.push(res.mercado);
-                });
-                // El mercado es un correlativo numerico, se ordena para que sea legible
-                lista.sort(function (a, b) { return parseFloat(a) - parseFloat(b); });
-                var options = '<option value="">Todos</option>';
-                $.each(lista, function (idx, m) {
-                    options += '<option value="' + m + '">Mercado ' + m + '</option>';
-                });
-                $("#vm_mercado").html(options);
-            },
-            error: function () { vmMercadosCargados = false; }
-        });
-    }
-
     // Conversión masiva de pedidos a venta
     $("#btn-venta-masiva").on("click", function () {
         $("#vm_resultado").html("");
@@ -633,12 +610,11 @@
             $("#vm_desde").val($("#f_desde").val());
             $("#vm_hasta").val($("#f_hasta").val());
         }
-        vmCargarMercados();
         $("#modal-venta-masiva").modal("show");
     });
 
-    // Al cambiar día o mercado se vuelve a buscar (solo si ya se hizo una búsqueda)
-    $("#vm_dia, #vm_mercado").on("change", function () {
+    // Al cambiar día o vehículo se vuelve a buscar (solo si ya se hizo una búsqueda)
+    $("#vm_dia, #vm_vehiculo").on("change", function () {
         if ($("#vm_desde").val() && $("#vm_hasta").val() && $(".vm-chk").length) {
             $("#vm_buscar").trigger("click");
         }
@@ -661,7 +637,7 @@
         $("#vm_resultado").html("");
         $("#vm_todos").prop("checked", false);
         $("#vm_lista").html('<tr><td colspan="10" class="text-center text-muted"><i class="fa fa-spinner fa-spin"></i> Buscando...</td></tr>');
-        _ajax("/ajs/ventas/masivo/listar", "POST", { desde: desde, hasta: hasta, dia: $("#vm_dia").val(), mercado: $("#vm_mercado").val() }, function (resp) {
+        _ajax("/ajs/ventas/masivo/listar", "POST", { desde: desde, hasta: hasta, dia: $("#vm_dia").val(), vehiculo: $("#vm_vehiculo").val() }, function (resp) {
             if (!resp.res) {
                 $("#vm_lista").html('<tr><td colspan="10" class="text-danger text-center">' + (resp.msj || 'Error') + '</td></tr>');
                 vmActualizarContador();
@@ -687,7 +663,7 @@
                     + '<td>' + p.fecha + '</td>'
                     + '<td>' + p.cliente + '</td>'
                     + '<td>' + (p.dias_visitas || '-') + '</td>'
-                    + '<td class="text-center">' + (p.mercado !== '' && p.mercado != null ? 'Mercado ' + p.mercado : '-') + '</td>'
+                    + '<td class="text-center">' + (p.ruta !== '' && p.ruta != null ? 'Ruta ' + p.ruta : '-') + '</td>'
                     + '<td class="text-center">' + p.items + '</td>'
                     + '<td class="text-end">' + parseFloat(p.total).toFixed(2) + '</td>'
                     + '<td>' + p.vendedor + '</td>'

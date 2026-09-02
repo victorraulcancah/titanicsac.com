@@ -342,18 +342,34 @@ class VentasController extends Controller
         $hastaEsc = $this->conexion->real_escape_string($hasta);
         $idEmpresa = $_SESSION['id_empresa'];
 
-        // Filtros opcionales sobre el cliente del pedido
-        $condDia = '';
+        // Filtros opcionales sobre el cliente del pedido: dia de visita y vehiculo (camion).
+        // El vehiculo no es un dato del cliente: se traduce a dia de visita + rutas, con el mismo
+        // mapeo que usan el listado de pedidos y los reportes (ConsultaDelcontroller::filtrosReparto).
         $dia = isset($_POST['dia']) ? trim($_POST['dia']) : '';
-        if ($dia !== '') {
+        $vehiculo = isset($_POST['vehiculo']) ? trim($_POST['vehiculo']) : '';
+        $mapaVehiculos = [
+            '1' => ['lunes' => ['1','7'], 'martes' => ['5','7'], 'miercoles' => ['5'], 'jueves' => ['1','7'], 'viernes' => ['6','7'], 'sabado' => ['7','8']],
+            '2' => ['lunes' => ['3','6'], 'martes' => ['1','3'], 'miercoles' => ['1','3'], 'jueves' => ['6','3'], 'viernes' => ['3','5'], 'sabado' => ['3','6']],
+            '3' => ['miercoles' => ['6','7'], 'viernes' => ['8','2'], 'sabado' => ['1','5']],
+        ];
+
+        $condFiltro = '';
+        if ($vehiculo !== '' && isset($mapaVehiculos[$vehiculo])) {
+            $filtros = $mapaVehiculos[$vehiculo];
+            if ($dia !== '') {
+                $filtros = isset($filtros[$dia]) ? [$dia => $filtros[$dia]] : [];
+            }
+            $partes = [];
+            foreach ($filtros as $diaMapa => $rutas) {
+                $diaEsc = $this->conexion->real_escape_string($diaMapa);
+                $rutasEsc = implode(',', array_map('intval', $rutas));
+                $partes[] = "(LOWER(c.dias_visitas) = LOWER('$diaEsc') AND c.id_ruta IN ($rutasEsc))";
+            }
+            // Ese vehiculo no recorre el dia elegido: no debe listar nada
+            $condFiltro = empty($partes) ? " AND 1 = 0" : " AND (" . implode(' OR ', $partes) . ")";
+        } elseif ($dia !== '') {
             $diaEsc = $this->conexion->real_escape_string($dia);
-            $condDia = " AND LOWER(c.dias_visitas) = LOWER('$diaEsc')";
-        }
-        $condMercado = '';
-        $mercado = isset($_POST['mercado']) ? trim($_POST['mercado']) : '';
-        if ($mercado !== '') {
-            $mercadoEsc = $this->conexion->real_escape_string($mercado);
-            $condMercado = " AND c.mercado = '$mercadoEsc'";
+            $condFiltro = " AND LOWER(c.dias_visitas) = LOWER('$diaEsc')";
         }
 
         $sql = "SELECT co.cotizacion_id, co.numero, DATE(COALESCE(co.fecha_registro, co.fecha)) AS fecha,
@@ -361,7 +377,7 @@ class VentasController extends Controller
                     CONCAT(IFNULL(c.documento,''), ' | ', IFNULL(c.datos,'SIN CLIENTE')) AS cliente,
                     IFNULL(u.usuario,'') AS vendedor,
                     IFNULL(c.dias_visitas,'') AS dias_visitas,
-                    IFNULL(c.mercado,'') AS mercado,
+                    IFNULL(c.id_ruta,'') AS ruta,
                     (SELECT COUNT(*) FROM productos_cotis pc WHERE pc.id_coti = co.cotizacion_id) AS items,
                     (SELECT CONCAT(v.serie,'-',v.numero) FROM ventas v
                       WHERE v.id_coti = co.cotizacion_id AND v.estado = 1 LIMIT 1) AS venta
@@ -373,8 +389,7 @@ class VentasController extends Controller
                   AND co.estado <> 2
                   -- Solo los pendientes: los que ya tienen venta vigente no se listan
                   AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1)
-                  $condDia
-                  $condMercado
+                  $condFiltro
                 ORDER BY co.cotizacion_id ASC
                 LIMIT 500";
         $rs = $this->conexion->query($sql);
