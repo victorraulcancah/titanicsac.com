@@ -402,4 +402,71 @@ class ProductosController extends Controller
         return json_encode($respuesta);
     }
     
+
+    /**
+     * Exporta el CATÁLOGO de productos a Excel: solo lo necesario para consultar y cotizar
+     * (código, descripción, medida, presentación, costo y precios). Sin stock, sin proveedor
+     * y sin código SUNAT.
+     */
+    public function exportarCatalogoExcel()
+    {
+        while (ob_get_level() > 0) { ob_end_clean(); }
+
+        $sql = "SELECT codigo, descripcion, medida, cnt_presenta, costo,
+                    precio, precio2, precio3, precio4, precio_unidad, precio_mayor
+                FROM productos
+                WHERE id_empresa = '{$_SESSION['id_empresa']}'
+                  AND (activo IS NULL OR activo <> '0')
+                ORDER BY descripcion ASC";
+        $data = $this->conexion->query($sql)->fetch_all(MYSQLI_ASSOC);
+
+        $spreadsheet = new PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Catalogo');
+
+        $sheet->mergeCells('A1:K1');
+        $sheet->setCellValue('A1', 'Catálogo de Productos');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(18);
+        $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        $headers = ['#', 'CODIGO', 'DESCRIPCION', 'MEDIDA', 'PRESENTACION', 'COSTO',
+                    'PRECIO', 'CREDITO 1', 'CREDITO 2', 'P. SACO', 'P. MAYOR'];
+        foreach ($headers as $i => $h) {
+            $sheet->setCellValueByColumnAndRow($i + 1, 2, $h);
+        }
+        $sheet->getStyle('A2:K2')->getFill()->setFillType(PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF28719B');
+        $sheet->getStyle('A2:K2')->getFont()->getColor()->setARGB(PhpOffice\PhpSpreadsheet\Style\Color::COLOR_WHITE);
+        $sheet->getStyle('A2:K2')->getFont()->setBold(true)->setSize(12);
+
+        $row = 3;
+        foreach ($data as $i => $d) {
+            $sheet->setCellValue('A' . $row, $i + 1);
+            $sheet->setCellValueExplicit('B' . $row, $d['codigo'] ?? '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+            $sheet->setCellValue('C' . $row, trim($d['descripcion'] ?? ''));
+            $sheet->setCellValue('D' . $row, $d['medida'] ?? '');
+            $sheet->setCellValue('E' . $row, $d['cnt_presenta'] ?? '');
+            $sheet->setCellValue('F' . $row, floatval($d['costo']));
+            $sheet->setCellValue('G' . $row, floatval($d['precio']));
+            $sheet->setCellValue('H' . $row, floatval($d['precio2']));
+            $sheet->setCellValue('I' . $row, floatval($d['precio3']));
+            $sheet->setCellValue('J' . $row, floatval($d['precio4']));
+            $sheet->setCellValue('K' . $row, floatval($d['precio_mayor']));
+            $row++;
+        }
+        // Los importes con 2 decimales
+        if ($row > 3) {
+            $sheet->getStyle('F3:K' . ($row - 1))->getNumberFormat()->setFormatCode('0.00');
+        }
+        foreach (range('A', 'K') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $writer = new PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="catalogo_productos.xlsx"');
+        header('Cache-Control: max-age=0');
+        $writer->save('php://output');
+        exit();
+    }
+
 }

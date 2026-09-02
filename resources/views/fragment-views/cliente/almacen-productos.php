@@ -59,6 +59,7 @@ $almacenProducto = 1;
                         </div>
                         <div class="col-md-6 text-end">
                             <button onclick="descarFunccc()" class="btn btn-success"><i class="fa fa-file-excel"></i> Descargar Exel por busqueda</button>
+                            <a href="<?= URL::to('/r/productos/catalogo/excel') ?>" target="_blank" class="btn btn-success" title="Código, descripción, medida, presentación, costo y precios"><i class="fa fa-book"></i> Catálogo Excel</a>
                             <button data-bs-toggle="modal" data-bs-target="#importarModal" class="btn btn-success"><i class="fa fa-file-excel"></i> Importar</button>
                             <button data-bs-toggle="modal" data-bs-target="#modal-add-prod" class="btn btn-primary"><i class="fa fa-plus"></i> Agregar Producto</button>
                             <button class="btn btn-danger btnBorrar"><i class="fa fa-times"></i> Borrar</button>
