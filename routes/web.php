@@ -115,6 +115,8 @@ Route::postBase("/ventas/productos","FragmentController@ventasProductos");
 Route::postBase("/ventas/servicios","FragmentController@ventasServicios");
 Route::postBase("/guia/remision/registrar","FragmentController@guiaRemisionAdd");
 Route::postBase("/proveedores", "FragmentController@proveedoresLista");
+Route::get("/r/proveedores/excel", "ProveedoresController@exportarExcel");
+Route::get("/r/productos/catalogo/excel", "ProductosController@exportarCatalogoExcel");
 /* Route::postBase("/guia/remision/registrar/coti","FragmentController@guiaRemisionAddByCoti"); */
 Route::postBase("/cuentas/cobrar","FragmentController@cuentasPorCobrar");
 

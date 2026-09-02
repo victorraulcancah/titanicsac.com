@@ -148,4 +148,61 @@
             return json_encode($respuesta);
         }
 
-    }
+    
+        /** Exporta la lista de proveedores a Excel */
+        public function exportarExcel()
+        {
+            while (ob_get_level() > 0) { ob_end_clean(); }
+
+            $sql = "SELECT ruc, razon_social, nombre_comercial, direccion, telefono, telefono2,
+                        email, departamento, provincia, distrito
+                    FROM proveedores
+                    WHERE id_empresa = '{$_SESSION['id_empresa']}'
+                    ORDER BY razon_social ASC";
+            $data = $this->conectar->query($sql)->fetch_all(MYSQLI_ASSOC);
+
+            $spreadsheet = new PhpOffice\PhpSpreadsheet\Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+            $sheet->setTitle('Proveedores');
+
+            $sheet->mergeCells('A1:J1');
+            $sheet->setCellValue('A1', 'Lista de Proveedores');
+            $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(18);
+            $sheet->getStyle('A1')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+            $headers = ['#', 'RUC', 'RAZON SOCIAL', 'NOMBRE COMERCIAL', 'DIRECCION',
+                        'TELEFONO', 'TELEFONO 2', 'EMAIL', 'DEPARTAMENTO', 'DISTRITO'];
+            foreach ($headers as $i => $h) {
+                $sheet->setCellValueByColumnAndRow($i + 1, 2, $h);
+            }
+            $sheet->getStyle('A2:J2')->getFill()->setFillType(PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)->getStartColor()->setARGB('FF28719B');
+            $sheet->getStyle('A2:J2')->getFont()->getColor()->setARGB(PhpOffice\PhpSpreadsheet\Style\Color::COLOR_WHITE);
+            $sheet->getStyle('A2:J2')->getFont()->setBold(true)->setSize(12);
+
+            $row = 3;
+            foreach ($data as $i => $d) {
+                $sheet->setCellValue('A' . $row, $i + 1);
+                $sheet->setCellValueExplicit('B' . $row, $d['ruc'] ?? '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                $sheet->setCellValue('C' . $row, $d['razon_social'] ?? '');
+                $sheet->setCellValue('D' . $row, $d['nombre_comercial'] ?? '');
+                $sheet->setCellValue('E' . $row, $d['direccion'] ?? '');
+                $sheet->setCellValueExplicit('F' . $row, $d['telefono'] ?? '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                $sheet->setCellValueExplicit('G' . $row, $d['telefono2'] ?? '', \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
+                $sheet->setCellValue('H' . $row, $d['email'] ?? '');
+                $sheet->setCellValue('I' . $row, $d['departamento'] ?? '');
+                $sheet->setCellValue('J' . $row, $d['distrito'] ?? '');
+                $row++;
+            }
+            foreach (range('A', 'J') as $col) {
+                $sheet->getColumnDimension($col)->setAutoSize(true);
+            }
+
+            $writer = new PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            header('Content-Disposition: attachment; filename="proveedores.xlsx"');
+            header('Cache-Control: max-age=0');
+            $writer->save('php://output');
+            exit();
+        }
+
+}

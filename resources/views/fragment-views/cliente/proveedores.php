@@ -33,6 +33,7 @@
                         <button type="button" data-bs-toggle="modal" data-bs-target="#agregarModal"
                                 class="btn btn-primary"><i class="fa fa-plus"></i> Agregar
                         </button>
+                        <a href="<?= URL::to('/r/proveedores/excel') ?>" target="_blank" class="btn btn-success"><i class="fa fa-file-excel"></i> Exportar Excel</a>
                         <!--   <button type="button" data-bs-toggle="modal" data-bs-target="#editarModal" class="btn btn-warning">Editar</button> -->
                     </div>
 
