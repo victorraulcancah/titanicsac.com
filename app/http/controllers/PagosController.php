@@ -195,13 +195,30 @@ class PagosController extends Controller
         // es el flujo normal y sigue permitido.
         if ($_POST["tipo"] == 'c') {
             $idCuotaChk = intval($_POST['id']);
-            // Solo cuentan las ventas VIGENTES (estado 1). Si la venta fue anulada, el pedido
-            // vuelve a ser cobrable. Un mismo pedido puede tener varias ventas (datos antiguos),
-            // por eso se listan todas las vigentes: así se sabe cuál sigue activa.
-            $rsConv = $this->conectar->query("SELECT v.id_venta, v.serie, v.numero
-                FROM cuotas_cotizacion cc
-                INNER JOIN ventas v ON v.id_coti = cc.id_coti AND v.estado = 1
-                WHERE cc.cuota_coti_id = $idCuotaChk");
+            // Primero se obtiene el pedido de la cuota. Es obligatorio que sea > 0: hay ventas
+            // DIRECTAS con id_coti = 0 y, al cruzar por id_coti, un 0 emparejaba con otro 0 y
+            // bloqueaba el cobro contra una venta que no tenía relación con el pedido.
+            // OJO con el significado de 'id': si la cuota es NUEVA (botón "Agregar Pago") el id
+            // que llega ES el del pedido; si la cuota ya existe, el id es de la cuota y hay que
+            // consultar a qué pedido pertenece. Confundirlos hacía mirar la cuota de otro pedido.
+            $esCuotaNueva = (isset($_POST['es_nuevo']) && $_POST['es_nuevo'] == 1);
+            $idCotiChk = 0;
+            if ($esCuotaNueva) {
+                $idCotiChk = $idCuotaChk;
+            } elseif ($idCuotaChk > 0) {
+                $rsCoti = $this->conectar->query("SELECT id_coti FROM cuotas_cotizacion WHERE cuota_coti_id = $idCuotaChk");
+                if ($rsCoti && $rsCoti->num_rows > 0) {
+                    $idCotiChk = intval($rsCoti->fetch_assoc()['id_coti']);
+                }
+            }
+            // Solo cuentan las ventas VIGENTES (estado 1) de ESE pedido. Si la venta fue anulada,
+            // el pedido vuelve a ser cobrable. Un mismo pedido puede tener varias ventas (datos
+            // antiguos), por eso se listan todas las vigentes: así se sabe cuál sigue activa.
+            $rsConv = ($idCotiChk > 0)
+                ? $this->conectar->query("SELECT v.id_venta, v.serie, v.numero
+                    FROM ventas v
+                    WHERE v.id_coti = $idCotiChk AND v.estado = 1")
+                : null;
             if ($rsConv && $rsConv->num_rows > 0) {
                 $docs = [];
                 foreach ($rsConv as $vta) {
