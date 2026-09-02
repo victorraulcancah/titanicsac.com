@@ -342,10 +342,26 @@ class VentasController extends Controller
         $hastaEsc = $this->conexion->real_escape_string($hasta);
         $idEmpresa = $_SESSION['id_empresa'];
 
+        // Filtros opcionales sobre el cliente del pedido
+        $condDia = '';
+        $dia = isset($_POST['dia']) ? trim($_POST['dia']) : '';
+        if ($dia !== '') {
+            $diaEsc = $this->conexion->real_escape_string($dia);
+            $condDia = " AND LOWER(c.dias_visitas) = LOWER('$diaEsc')";
+        }
+        $condMercado = '';
+        $mercado = isset($_POST['mercado']) ? trim($_POST['mercado']) : '';
+        if ($mercado !== '') {
+            $mercadoEsc = $this->conexion->real_escape_string($mercado);
+            $condMercado = " AND c.mercado = '$mercadoEsc'";
+        }
+
         $sql = "SELECT co.cotizacion_id, co.numero, DATE(COALESCE(co.fecha_registro, co.fecha)) AS fecha,
                     co.total,
                     CONCAT(IFNULL(c.documento,''), ' | ', IFNULL(c.datos,'SIN CLIENTE')) AS cliente,
                     IFNULL(u.usuario,'') AS vendedor,
+                    IFNULL(c.dias_visitas,'') AS dias_visitas,
+                    IFNULL(c.mercado,'') AS mercado,
                     (SELECT COUNT(*) FROM productos_cotis pc WHERE pc.id_coti = co.cotizacion_id) AS items,
                     (SELECT CONCAT(v.serie,'-',v.numero) FROM ventas v
                       WHERE v.id_coti = co.cotizacion_id AND v.estado = 1 LIMIT 1) AS venta
@@ -357,6 +373,8 @@ class VentasController extends Controller
                   AND co.estado <> 2
                   -- Solo los pendientes: los que ya tienen venta vigente no se listan
                   AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1)
+                  $condDia
+                  $condMercado
                 ORDER BY co.cotizacion_id ASC
                 LIMIT 500";
         $rs = $this->conexion->query($sql);

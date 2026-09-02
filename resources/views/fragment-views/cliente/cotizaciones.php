@@ -124,18 +124,37 @@
             </div>
             <div class="modal-body">
                 <div class="row g-2 align-items-end">
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-2">
                         <label for="vm_desde" class="form-label">Fecha inicio</label>
                         <input type="date" id="vm_desde" class="form-control form-control-sm">
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-2">
                         <label for="vm_hasta" class="form-label">Fecha fin</label>
                         <input type="date" id="vm_hasta" class="form-control form-control-sm">
                     </div>
-                    <div class="col-12 col-md-3 d-grid">
+                    <div class="col-6 col-md-2">
+                        <label for="vm_dia" class="form-label">Día de visita</label>
+                        <select id="vm_dia" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <option value="lunes">Lunes</option>
+                            <option value="martes">Martes</option>
+                            <option value="miercoles">Miércoles</option>
+                            <option value="jueves">Jueves</option>
+                            <option value="viernes">Viernes</option>
+                            <option value="sabado">Sábado</option>
+                            <option value="domingo">Domingo</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label for="vm_mercado" class="form-label">Mercado</label>
+                        <select id="vm_mercado" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-2 d-grid">
                         <button type="button" class="btn btn-primary btn-sm" id="vm_buscar"><i class="fa fa-search"></i> Buscar pedidos</button>
                     </div>
-                    <div class="col-12 col-md-3 text-md-end">
+                    <div class="col-12 col-md-2 text-md-end">
                         <span id="vm_contador" class="badge bg-secondary">0 seleccionados</span>
                     </div>
                 </div>
@@ -150,6 +169,8 @@
                                 <th>Pedido</th>
                                 <th>Fecha</th>
                                 <th>Cliente</th>
+                                <th>Día visita</th>
+                                <th class="text-center">Mercado</th>
                                 <th class="text-center">Items</th>
                                 <th class="text-end">Total</th>
                                 <th>Vendedor</th>
@@ -157,7 +178,7 @@
                             </tr>
                         </thead>
                         <tbody id="vm_lista">
-                            <tr><td colspan="8" class="text-muted text-center">Elija el rango de fechas y pulse "Buscar pedidos".</td></tr>
+                            <tr><td colspan="10" class="text-muted text-center">Elija el rango de fechas y pulse "Buscar pedidos".</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -578,6 +599,32 @@
         tabla.ajax.reload();
     });
 
+    // Los mercados se cargan una sola vez, la primera vez que se abre el modal
+    var vmMercadosCargados = false;
+    function vmCargarMercados() {
+        if (vmMercadosCargados) return;
+        vmMercadosCargados = true;
+        $.ajax({
+            url: '/ajs/admin/cliente/mercados',
+            method: 'GET',
+            success: function (response) {
+                try { if (typeof response === "string") response = JSON.parse(response); } catch (e) { return; }
+                var lista = [];
+                $.each(response, function (idx, res) {
+                    if (res.mercado) lista.push(res.mercado);
+                });
+                // El mercado es un correlativo numerico, se ordena para que sea legible
+                lista.sort(function (a, b) { return parseFloat(a) - parseFloat(b); });
+                var options = '<option value="">Todos</option>';
+                $.each(lista, function (idx, m) {
+                    options += '<option value="' + m + '">Mercado ' + m + '</option>';
+                });
+                $("#vm_mercado").html(options);
+            },
+            error: function () { vmMercadosCargados = false; }
+        });
+    }
+
     // Conversión masiva de pedidos a venta
     $("#btn-venta-masiva").on("click", function () {
         $("#vm_resultado").html("");
@@ -586,7 +633,15 @@
             $("#vm_desde").val($("#f_desde").val());
             $("#vm_hasta").val($("#f_hasta").val());
         }
+        vmCargarMercados();
         $("#modal-venta-masiva").modal("show");
+    });
+
+    // Al cambiar día o mercado se vuelve a buscar (solo si ya se hizo una búsqueda)
+    $("#vm_dia, #vm_mercado").on("change", function () {
+        if ($("#vm_desde").val() && $("#vm_hasta").val() && $(".vm-chk").length) {
+            $("#vm_buscar").trigger("click");
+        }
     });
 
     function vmActualizarContador() {
@@ -605,15 +660,15 @@
         }
         $("#vm_resultado").html("");
         $("#vm_todos").prop("checked", false);
-        $("#vm_lista").html('<tr><td colspan="8" class="text-center text-muted"><i class="fa fa-spinner fa-spin"></i> Buscando...</td></tr>');
-        _ajax("/ajs/ventas/masivo/listar", "POST", { desde: desde, hasta: hasta }, function (resp) {
+        $("#vm_lista").html('<tr><td colspan="10" class="text-center text-muted"><i class="fa fa-spinner fa-spin"></i> Buscando...</td></tr>');
+        _ajax("/ajs/ventas/masivo/listar", "POST", { desde: desde, hasta: hasta, dia: $("#vm_dia").val(), mercado: $("#vm_mercado").val() }, function (resp) {
             if (!resp.res) {
-                $("#vm_lista").html('<tr><td colspan="8" class="text-danger text-center">' + (resp.msj || 'Error') + '</td></tr>');
+                $("#vm_lista").html('<tr><td colspan="10" class="text-danger text-center">' + (resp.msj || 'Error') + '</td></tr>');
                 vmActualizarContador();
                 return;
             }
             if (!resp.pedidos.length) {
-                $("#vm_lista").html('<tr><td colspan="8" class="text-muted text-center">No hay pedidos en ese rango</td></tr>');
+                $("#vm_lista").html('<tr><td colspan="10" class="text-muted text-center">No hay pedidos en ese rango</td></tr>');
                 vmActualizarContador();
                 return;
             }
@@ -631,6 +686,8 @@
                     + '<td>#' + p.numero + '</td>'
                     + '<td>' + p.fecha + '</td>'
                     + '<td>' + p.cliente + '</td>'
+                    + '<td>' + (p.dias_visitas || '-') + '</td>'
+                    + '<td class="text-center">' + (p.mercado !== '' && p.mercado != null ? 'Mercado ' + p.mercado : '-') + '</td>'
                     + '<td class="text-center">' + p.items + '</td>'
                     + '<td class="text-end">' + parseFloat(p.total).toFixed(2) + '</td>'
                     + '<td>' + p.vendedor + '</td>'
