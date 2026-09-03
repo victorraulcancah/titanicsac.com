@@ -2,14 +2,34 @@
 
 class Cobranza
 {
+    /**
+     * Desde esta fecha un PEDIDO ya no genera cuenta por cobrar: la deuda nace recien
+     * cuando el pedido se convierte en venta (ahi vive en dias_ventas). Los pedidos
+     * anteriores se siguen mostrando para no perder la deuda historica pendiente.
+     */
+    const FECHA_CORTE_CXC_PEDIDOS = '2026-09-02';
+
     public $conectar;
     public function __construct()
     {
         $this->conectar = (new Conexion())->getConexion();
     }
+
+    /**
+     * Condicion que deja fuera de Cuentas por Cobrar a los pedidos nuevos.
+     * Un pedido posterior al corte solo sigue visible si ya tiene algun cobro
+     * registrado, para que ningun cobro quede sin pantalla donde consultarse.
+     */
+    private function condicionPedidosCxC()
+    {
+        $corte = self::FECHA_CORTE_CXC_PEDIDOS;
+        return " AND (DATE(COALESCE(co.fecha_registro, co.fecha)) < '$corte'
+                     OR EXISTS (SELECT 1 FROM cuotas_cotizacion cxc WHERE cxc.id_coti = co.cotizacion_id AND cxc.estado = 1))";
+    }
     public function getAllCobranzas()
 {
     try {
+        $condPedidos = $this->condicionPedidosCxC();
         if ($_SESSION["rol"] == 4) {
             $sql = "
             (SELECT 
@@ -68,7 +88,8 @@ class Cobranza
             LEFT JOIN usuarios us ON us.usuario_id = co.id_usuario
             WHERE co.id_tipo_pago = 2 AND co.estado!=2
             -- Pedido ya convertido en venta: su deuda vive en la venta (evita deuda duplicada).
-            AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1))
+            AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1)
+            $condPedidos)
             
             ORDER BY mercado ASC, cliente ASC, fecha_emision ASC";
         } else {
@@ -130,7 +151,8 @@ class Cobranza
             LEFT JOIN usuarios us ON us.usuario_id = co.id_usuario
             WHERE co.id_tipo_pago = 2 AND co.estado!=2
             -- Pedido ya convertido en venta: su deuda vive en la venta (evita deuda duplicada).
-            AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1))
+            AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1)
+            $condPedidos)
             
             ORDER BY mercado ASC, cliente ASC, fecha_emision ASC";
         }
@@ -146,6 +168,7 @@ class Cobranza
  public function getAllDeudas()
     {
         try {
+            $condPedidos = $this->condicionPedidosCxC();
             $sql = "SELECT 
                         tb.cliente as cliente,
                         SUM(tb.total) AS total,
@@ -166,7 +189,7 @@ class Cobranza
 
                 INNER JOIN clientes AS c ON c.id_cliente=co.id_cliente
                 JOIN usuarios us ON us.usuario_id = co.id_usuario
-                WHERE co.id_tipo_pago=2 AND co.estado!=2) tb GROUP BY tb.cliente;";
+                WHERE co.id_tipo_pago=2 AND co.estado!=2 $condPedidos) tb GROUP BY tb.cliente;";
 
             $fila = mysqli_query($this->conectar, $sql);
             $lista2 =  mysqli_fetch_all($fila, MYSQLI_ASSOC);
@@ -334,6 +357,7 @@ class Cobranza
             INNER JOIN clientes AS c ON c.id_cliente = co.id_cliente
             LEFT JOIN usuarios us ON us.usuario_id = co.id_usuario
             WHERE co.id_tipo_pago = 2 AND co.estado!=2
+            {$this->condicionPedidosCxC()}
             $whereCliente
             $whereVendedor
             $whereClientes
