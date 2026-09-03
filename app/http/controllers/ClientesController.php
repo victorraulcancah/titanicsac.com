@@ -3,6 +3,7 @@
 use Mpdf\Utils\Arrays;
 
 require_once "app/models/Cliente.php";
+require_once "app/models/Cobranza.php"; // fecha de corte de las cuentas por cobrar de pedidos
 require_once "utils/lib/exel/vendor/autoload.php";
 require_once 'utils/lib/mpdf/vendor/autoload.php';
 
@@ -17,6 +18,18 @@ class ClientesController extends Controller
     {
         $this->cliente = new Cliente();
         $this->conectar = (new Conexion())->getConexion();
+    }
+
+    /**
+     * Los pedidos ya no generan cuenta por cobrar: desde Cobranza::FECHA_CORTE_CXC_PEDIDOS
+     * la deuda nace recien al convertir el pedido en venta. Los pedidos anteriores siguen
+     * visibles, y uno posterior al corte solo aparece si ya tiene algun cobro registrado.
+     */
+    private function condicionPedidosCxC()
+    {
+        $corte = Cobranza::FECHA_CORTE_CXC_PEDIDOS;
+        return " AND (DATE(COALESCE(co.fecha_registro, co.fecha)) < '$corte'
+                     OR EXISTS (SELECT 1 FROM cuotas_cotizacion cxc WHERE cxc.id_coti = co.cotizacion_id AND cxc.estado = 1))";
     }
 
     public function getUsuarios()
@@ -190,6 +203,7 @@ class ClientesController extends Controller
                 INNER JOIN clientes AS c ON c.id_cliente = co.id_cliente
                 JOIN usuarios us ON us.usuario_id = co.id_usuario
                 WHERE co.id_tipo_pago = 2 AND co.estado!=2 
+                    {$this->condicionPedidosCxC()}
                     $whereFechaCoti
                     $whereUsuarioCoti
                     $whereClientes
@@ -405,6 +419,7 @@ class ClientesController extends Controller
                 INNER JOIN clientes AS c ON c.id_cliente = co.id_cliente
                 JOIN usuarios us ON us.usuario_id = co.id_usuario
                 WHERE co.id_tipo_pago = 2 AND co.estado!=2 
+                    {$this->condicionPedidosCxC()}
                     $whereFechaCoti
                     $whereUsuarioCoti
                     $whereClientes
