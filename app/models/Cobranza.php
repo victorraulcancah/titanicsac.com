@@ -40,6 +40,7 @@ class Cobranza
                 MAX(v.fecha_vencimiento) AS fecha_vencimiento,
                 CONCAT(c.documento, ' | ', c.datos) AS cliente,
                 c.mercado AS mercado,
+                IFNULL(co_v.numero, '') AS pedido,
                 MAX(v.total) AS total,
                 IFNULL(us_ped.usuario, IFNULL(us_v.usuario, '')) AS vendedor,
                 SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END) AS pagado,
@@ -53,7 +54,7 @@ class Cobranza
             WHERE v.estado = 1 
               AND v.id_tipo_pago = 2  
               AND v.id_empresa = '{$_SESSION['id_empresa']}'
-            GROUP BY v.id_venta, c.datos, c.mercado, us_ped.usuario, us_v.usuario)
+            GROUP BY v.id_venta, c.datos, c.mercado, co_v.numero, us_ped.usuario, us_v.usuario)
             
             UNION ALL
             
@@ -71,6 +72,7 @@ class Cobranza
                 ) AS fecha_vencimiento,
                 CONCAT(c.documento, ' | ', c.datos) AS cliente,
                 c.mercado AS mercado,
+                co.numero AS pedido,
                 co.total,
                 if(us.usuario_id is null,'Usuario Eliminado',us.usuario) AS vendedor,
                 (
@@ -102,6 +104,7 @@ class Cobranza
                 MAX(v.fecha_vencimiento) AS fecha_vencimiento,
                 CONCAT(c.documento, ' | ', c.datos) AS cliente,
                 c.mercado AS mercado,
+                IFNULL(co_v.numero, '') AS pedido,
                 MAX(v.total) AS total,
                 IFNULL(us_ped.usuario, IFNULL(us_v.usuario, '')) AS vendedor,
                 SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END) AS pagado,
@@ -116,7 +119,7 @@ class Cobranza
               AND v.id_tipo_pago = 2 
               AND v.sucursal = '{$_SESSION['sucursal']}'
               AND v.id_empresa = '{$_SESSION['id_empresa']}'
-            GROUP BY v.id_venta, c.datos, c.mercado, us_ped.usuario, us_v.usuario)
+            GROUP BY v.id_venta, c.datos, c.mercado, co_v.numero, us_ped.usuario, us_v.usuario)
             
             UNION ALL
             
@@ -134,6 +137,7 @@ class Cobranza
                 ) AS fecha_vencimiento,
                 CONCAT(c.documento, ' | ', c.datos) AS cliente,
                 c.mercado AS mercado,
+                co.numero AS pedido,
                 co.total,
                 if(us.usuario_id is null,'Usuario Eliminado',us.usuario) AS vendedor,
                 (

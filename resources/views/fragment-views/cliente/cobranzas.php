@@ -497,6 +497,17 @@
                     {
                         data: "factura",
                         class: "text-center",
+                        render: function (data, type, row) {
+                            var ped = (row.pedido === undefined || row.pedido === null) ? '' : String(row.pedido).trim();
+                            // El buscador tambien debe responder al numero de pedido que origino la venta
+                            if (type === 'filter' || type === 'sort') {
+                                return (data || '') + (ped ? ' #' + ped + ' ' + ped : '');
+                            }
+                            if (row.tipo_co === 'v' && ped) {
+                                return (data || '') + '<br><small class="text-muted">Ped. #' + ped + '</small>';
+                            }
+                            return data;
+                        },
                     },
                     {
                         data: "fecha_emision",

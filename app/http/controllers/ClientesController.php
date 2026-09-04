@@ -155,6 +155,7 @@ class ClientesController extends Controller
                 v.fecha_emision, 
                 v.fecha_vencimiento,
                 CONCAT(c.documento, ' | ', c.datos) AS cliente, 
+                IFNULL(co_v.numero, '') AS pedido,
                 v.total, 
                 u.usuario AS vendedor,
                 SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END) AS pagado,
@@ -165,6 +166,7 @@ class ClientesController extends Controller
             FROM ventas AS v
             INNER JOIN dias_ventas AS dv ON v.id_venta = dv.id_venta 
             INNER JOIN clientes AS c ON v.id_cliente = c.id_cliente
+            LEFT JOIN cotizaciones AS co_v ON co_v.cotizacion_id = v.id_coti
             LEFT JOIN usuarios u ON u.usuario_id = v.id_vendedor
             WHERE v.estado = 1 
                 AND v.id_empresa = '{$_SESSION['id_empresa']}' 
@@ -194,6 +196,7 @@ class ClientesController extends Controller
                     co.fecha AS fecha_emision,
                     (SELECT fecha FROM cuotas_cotizacion cc WHERE cc.id_coti = co.cotizacion_id ORDER BY fecha DESC LIMIT 1) AS fecha_vencimiento,
                     CONCAT(c.documento, ' | ', c.datos) AS cliente,
+                    co.numero AS pedido,
                     co.total,
                     c.mercado AS mercado,
                     c.dias_visitas,
@@ -371,6 +374,7 @@ class ClientesController extends Controller
                 v.fecha_emision, 
                 v.fecha_vencimiento,
                 CONCAT(c.documento, ' | ', c.datos) AS cliente, 
+                IFNULL(co_v.numero, '') AS pedido,
                 v.total, 
                 u.usuario AS vendedor,
                 SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END) AS pagado,
@@ -381,6 +385,7 @@ class ClientesController extends Controller
             FROM ventas AS v
             INNER JOIN dias_ventas AS dv ON v.id_venta = dv.id_venta 
             INNER JOIN clientes AS c ON v.id_cliente = c.id_cliente
+            LEFT JOIN cotizaciones AS co_v ON co_v.cotizacion_id = v.id_coti
             LEFT JOIN usuarios u ON u.usuario_id = v.id_vendedor
             WHERE v.estado = 1 
                 AND v.id_empresa = '{$_SESSION['id_empresa']}' 
@@ -410,6 +415,7 @@ class ClientesController extends Controller
                     co.fecha AS fecha_emision,
                     (SELECT fecha FROM cuotas_cotizacion cc WHERE cc.id_coti = co.cotizacion_id ORDER BY fecha DESC LIMIT 1) AS fecha_vencimiento,
                     CONCAT(c.documento, ' | ', c.datos) AS cliente,
+                    co.numero AS pedido,
                     co.total,
                     c.mercado AS mercado,
                     c.dias_visitas,
