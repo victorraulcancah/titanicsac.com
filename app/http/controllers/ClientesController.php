@@ -156,6 +156,7 @@ class ClientesController extends Controller
                 v.fecha_vencimiento,
                 CONCAT(c.documento, ' | ', c.datos) AS cliente, 
                 IFNULL(co_v.numero, '') AS pedido,
+                '' AS nota_venta,
                 v.total, 
                 u.usuario AS vendedor,
                 SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END) AS pagado,
@@ -197,6 +198,8 @@ class ClientesController extends Controller
                     (SELECT fecha FROM cuotas_cotizacion cc WHERE cc.id_coti = co.cotizacion_id ORDER BY fecha DESC LIMIT 1) AS fecha_vencimiento,
                     CONCAT(c.documento, ' | ', c.datos) AS cliente,
                     co.numero AS pedido,
+                    IFNULL((SELECT CONCAT(v.serie, ' | ', v.numero) FROM ventas v
+                            WHERE v.id_coti = co.cotizacion_id AND v.estado = 1 LIMIT 1), '') AS nota_venta,
                     co.total,
                     c.mercado AS mercado,
                     c.dias_visitas,
@@ -375,6 +378,7 @@ class ClientesController extends Controller
                 v.fecha_vencimiento,
                 CONCAT(c.documento, ' | ', c.datos) AS cliente, 
                 IFNULL(co_v.numero, '') AS pedido,
+                '' AS nota_venta,
                 v.total, 
                 u.usuario AS vendedor,
                 SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END) AS pagado,
@@ -416,6 +420,8 @@ class ClientesController extends Controller
                     (SELECT fecha FROM cuotas_cotizacion cc WHERE cc.id_coti = co.cotizacion_id ORDER BY fecha DESC LIMIT 1) AS fecha_vencimiento,
                     CONCAT(c.documento, ' | ', c.datos) AS cliente,
                     co.numero AS pedido,
+                    IFNULL((SELECT CONCAT(v.serie, ' | ', v.numero) FROM ventas v
+                            WHERE v.id_coti = co.cotizacion_id AND v.estado = 1 LIMIT 1), '') AS nota_venta,
                     co.total,
                     c.mercado AS mercado,
                     c.dias_visitas,

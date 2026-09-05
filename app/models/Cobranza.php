@@ -41,6 +41,7 @@ class Cobranza
                 CONCAT(c.documento, ' | ', c.datos) AS cliente,
                 c.mercado AS mercado,
                 IFNULL(co_v.numero, '') AS pedido,
+                '' AS nota_venta,
                 MAX(v.total) AS total,
                 IFNULL(us_ped.usuario, IFNULL(us_v.usuario, '')) AS vendedor,
                 SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END) AS pagado,
@@ -73,6 +74,8 @@ class Cobranza
                 CONCAT(c.documento, ' | ', c.datos) AS cliente,
                 c.mercado AS mercado,
                 co.numero AS pedido,
+                IFNULL((SELECT CONCAT(v.serie, ' | ', v.numero) FROM ventas v
+                        WHERE v.id_coti = co.cotizacion_id AND v.estado = 1 LIMIT 1), '') AS nota_venta,
                 co.total,
                 if(us.usuario_id is null,'Usuario Eliminado',us.usuario) AS vendedor,
                 (
@@ -89,8 +92,6 @@ class Cobranza
             INNER JOIN clientes AS c ON c.id_cliente = co.id_cliente
             LEFT JOIN usuarios us ON us.usuario_id = co.id_usuario
             WHERE co.id_tipo_pago = 2 AND co.estado!=2
-            -- Pedido ya convertido en venta: su deuda vive en la venta (evita deuda duplicada).
-            AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1)
             $condPedidos)
             
             ORDER BY mercado ASC, cliente ASC, fecha_emision ASC";
@@ -105,6 +106,7 @@ class Cobranza
                 CONCAT(c.documento, ' | ', c.datos) AS cliente,
                 c.mercado AS mercado,
                 IFNULL(co_v.numero, '') AS pedido,
+                '' AS nota_venta,
                 MAX(v.total) AS total,
                 IFNULL(us_ped.usuario, IFNULL(us_v.usuario, '')) AS vendedor,
                 SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END) AS pagado,
@@ -138,6 +140,8 @@ class Cobranza
                 CONCAT(c.documento, ' | ', c.datos) AS cliente,
                 c.mercado AS mercado,
                 co.numero AS pedido,
+                IFNULL((SELECT CONCAT(v.serie, ' | ', v.numero) FROM ventas v
+                        WHERE v.id_coti = co.cotizacion_id AND v.estado = 1 LIMIT 1), '') AS nota_venta,
                 co.total,
                 if(us.usuario_id is null,'Usuario Eliminado',us.usuario) AS vendedor,
                 (
@@ -154,8 +158,6 @@ class Cobranza
             INNER JOIN clientes AS c ON c.id_cliente = co.id_cliente
             LEFT JOIN usuarios us ON us.usuario_id = co.id_usuario
             WHERE co.id_tipo_pago = 2 AND co.estado!=2
-            -- Pedido ya convertido en venta: su deuda vive en la venta (evita deuda duplicada).
-            AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1)
             $condPedidos)
             
             ORDER BY mercado ASC, cliente ASC, fecha_emision ASC";

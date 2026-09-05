@@ -132,6 +132,7 @@
                             <tr>
                                 <th>Id</th>
                                 <th>Codigo</th>
+                                <th>Nota de Venta</th>
                                 <th>F. Emision</th>
                                 <th>F. Vencimiento</th>
                                 <th>Vendedor</th>
@@ -349,6 +350,7 @@
 
                     if (Array.isArray(data)) {
                         if (window.SOLO_VENTAS) data = data.filter(r => r.tipo_co === 'v' && parseFloat(r.saldo || 0) > 0.009); // solo ventas con saldo pendiente
+                        else data = data.filter(r => r.tipo_co === 'c'); // solo pedidos: la venta se ve en su columna
                         const datatable = $('#datatable').DataTable();
                         datatable.clear();
                         datatable.rows.add(data).draw();
@@ -461,6 +463,7 @@
                     // Modo "solo ventas": la vista Cuentas por Cobrar de VENTAS reutiliza esta
                     // pantalla mostrando únicamente deudas de ventas (tipo_co='v')
                     if (window.SOLO_VENTAS && (row.tipo_co !== 'v' || !(parseFloat(row.saldo || 0) > 0.009))) return false; // solo ventas con saldo pendiente
+                    if (!window.SOLO_VENTAS && row.tipo_co !== 'c') return false; // solo pedidos: la venta se ve en su columna
                     const total = parseFloat(row.total);
                     const pagado = parseFloat(row.pagado);
                     const diferencia = Math.abs(total - pagado);
@@ -477,7 +480,7 @@
                 datatable = $("#datatable").DataTable({
                     order: [], // Sin ordenamiento inicial, usar el del backend
                     columnDefs: [{
-                        targets: 2, // Columna fecha
+                        targets: 3, // Columna fecha (corrida por la columna Nota de Venta)
                         type: "date"
                     }],
                     paging: true,
@@ -507,6 +510,14 @@
                                 return (data || '') + '<br><small class="text-muted">Ped. #' + ped + '</small>';
                             }
                             return data;
+                        },
+                    },
+                    {
+                        data: "nota_venta",
+                        class: "text-center",
+                        visible: !window.SOLO_VENTAS, // en Cuentas por Cobrar 2 (ventas) no aplica
+                        render: function (data) {
+                            return data ? data : '-';
                         },
                     },
                     {
