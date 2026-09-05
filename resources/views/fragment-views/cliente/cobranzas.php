@@ -757,9 +757,10 @@
             $("#loader-menor").show()
             var table = $("#tablaMaquina").DataTable();
             var tr = $(this).closest("tr")[0];
-            var td = tr.querySelectorAll('td')[5];
-            var td_texto = td.innerHTML;
-            var cliente = td_texto.split('|')[1];
+            // El cliente se toma del dato de la fila, no de la posicion de la celda:
+            // el numero de columna cambia segun la pantalla (en CxC 2 va oculta la nota de venta)
+            var fila = $("#datatable").DataTable().row(tr).data() || {};
+            var cliente = (fila.cliente || '').split('|')[1] || (fila.cliente || '');
             var trid = $(this).closest("tr").attr("id");
             var id = $(this).data("id");
             var tipo = $(this).data("tipo");
