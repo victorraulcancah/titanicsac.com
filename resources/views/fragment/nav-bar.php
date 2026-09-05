@@ -163,11 +163,6 @@ $id_role = isset($_SESSION['rol'])?$_SESSION['rol']:1;
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="<?= DOMINIO ?>cobranzas">
-                    <i class="fa fa-money-bill"></i>CUENTAS POR COBRAR
-                </a>
-            </li>
-            <li class="nav-item">
                 <a class="nav-link" href="<?= DOMINIO ?>cobranzas/ventas">
                     <i class="fa fa-money-bill"></i>CUENTAS POR COBRAR 2
                 </a>
