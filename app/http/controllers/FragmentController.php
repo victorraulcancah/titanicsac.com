@@ -205,10 +205,6 @@ class FragmentController extends Controller
     }
     public function cobranzas()
     {
-        // El repartidor solo ve Cuentas por Cobrar de VENTAS: los pedidos ya no son deuda
-        if (isset($_SESSION['rol']) && $_SESSION['rol'] == 7) {
-            return $this->view("fragment-views/cliente/cobranzas-ventas");
-        }
         return $this->view("fragment-views/cliente/cobranzas");
     }
     public function cobranzasVentas()
