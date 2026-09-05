@@ -74,8 +74,7 @@ class Cobranza
                 CONCAT(c.documento, ' | ', c.datos) AS cliente,
                 c.mercado AS mercado,
                 co.numero AS pedido,
-                IFNULL((SELECT CONCAT(v.serie, ' | ', v.numero) FROM ventas v
-                        WHERE v.id_coti = co.cotizacion_id AND v.estado = 1 LIMIT 1), '') AS nota_venta,
+                IFNULL(vv.nota_venta, '') AS nota_venta,
                 co.total,
                 if(us.usuario_id is null,'Usuario Eliminado',us.usuario) AS vendedor,
                 (
@@ -91,6 +90,11 @@ class Cobranza
             FROM cotizaciones co
             INNER JOIN clientes AS c ON c.id_cliente = co.id_cliente
             LEFT JOIN usuarios us ON us.usuario_id = co.id_usuario
+            -- Nota de venta del pedido: un solo join agrupado. Como ventas.id_coti no esta
+            -- indexado, una subconsulta por fila tardaba casi un minuto sobre 54 mil pedidos.
+            LEFT JOIN (SELECT id_coti, MIN(CONCAT(serie, ' | ', numero)) AS nota_venta
+                       FROM ventas WHERE estado = 1 AND id_coti > 0 GROUP BY id_coti) vv
+                   ON vv.id_coti = co.cotizacion_id
             WHERE co.id_tipo_pago = 2 AND co.estado!=2
             $condPedidos)
             
@@ -140,8 +144,7 @@ class Cobranza
                 CONCAT(c.documento, ' | ', c.datos) AS cliente,
                 c.mercado AS mercado,
                 co.numero AS pedido,
-                IFNULL((SELECT CONCAT(v.serie, ' | ', v.numero) FROM ventas v
-                        WHERE v.id_coti = co.cotizacion_id AND v.estado = 1 LIMIT 1), '') AS nota_venta,
+                IFNULL(vv.nota_venta, '') AS nota_venta,
                 co.total,
                 if(us.usuario_id is null,'Usuario Eliminado',us.usuario) AS vendedor,
                 (
@@ -157,6 +160,11 @@ class Cobranza
             FROM cotizaciones co
             INNER JOIN clientes AS c ON c.id_cliente = co.id_cliente
             LEFT JOIN usuarios us ON us.usuario_id = co.id_usuario
+            -- Nota de venta del pedido: un solo join agrupado. Como ventas.id_coti no esta
+            -- indexado, una subconsulta por fila tardaba casi un minuto sobre 54 mil pedidos.
+            LEFT JOIN (SELECT id_coti, MIN(CONCAT(serie, ' | ', numero)) AS nota_venta
+                       FROM ventas WHERE estado = 1 AND id_coti > 0 GROUP BY id_coti) vv
+                   ON vv.id_coti = co.cotizacion_id
             WHERE co.id_tipo_pago = 2 AND co.estado!=2
             $condPedidos)
             

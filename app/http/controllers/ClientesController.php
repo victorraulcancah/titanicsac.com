@@ -198,8 +198,7 @@ class ClientesController extends Controller
                     (SELECT fecha FROM cuotas_cotizacion cc WHERE cc.id_coti = co.cotizacion_id ORDER BY fecha DESC LIMIT 1) AS fecha_vencimiento,
                     CONCAT(c.documento, ' | ', c.datos) AS cliente,
                     co.numero AS pedido,
-                    IFNULL((SELECT CONCAT(v.serie, ' | ', v.numero) FROM ventas v
-                            WHERE v.id_coti = co.cotizacion_id AND v.estado = 1 LIMIT 1), '') AS nota_venta,
+                    IFNULL(vv.nota_venta, '') AS nota_venta,
                     co.total,
                     c.mercado AS mercado,
                     c.dias_visitas,
@@ -208,6 +207,10 @@ class ClientesController extends Controller
                 FROM cotizaciones co
                 INNER JOIN clientes AS c ON c.id_cliente = co.id_cliente
                 JOIN usuarios us ON us.usuario_id = co.id_usuario
+                -- Nota de venta del pedido: un solo join agrupado (ventas.id_coti no esta indexado)
+                LEFT JOIN (SELECT id_coti, MIN(CONCAT(serie, ' | ', numero)) AS nota_venta
+                           FROM ventas WHERE estado = 1 AND id_coti > 0 GROUP BY id_coti) vv
+                       ON vv.id_coti = co.cotizacion_id
                 WHERE co.id_tipo_pago = 2 AND co.estado!=2 
                     {$this->condicionPedidosCxC()}
                     $whereFechaCoti
@@ -420,8 +423,7 @@ class ClientesController extends Controller
                     (SELECT fecha FROM cuotas_cotizacion cc WHERE cc.id_coti = co.cotizacion_id ORDER BY fecha DESC LIMIT 1) AS fecha_vencimiento,
                     CONCAT(c.documento, ' | ', c.datos) AS cliente,
                     co.numero AS pedido,
-                    IFNULL((SELECT CONCAT(v.serie, ' | ', v.numero) FROM ventas v
-                            WHERE v.id_coti = co.cotizacion_id AND v.estado = 1 LIMIT 1), '') AS nota_venta,
+                    IFNULL(vv.nota_venta, '') AS nota_venta,
                     co.total,
                     c.mercado AS mercado,
                     c.dias_visitas,
@@ -430,6 +432,10 @@ class ClientesController extends Controller
                 FROM cotizaciones co
                 INNER JOIN clientes AS c ON c.id_cliente = co.id_cliente
                 JOIN usuarios us ON us.usuario_id = co.id_usuario
+                -- Nota de venta del pedido: un solo join agrupado (ventas.id_coti no esta indexado)
+                LEFT JOIN (SELECT id_coti, MIN(CONCAT(serie, ' | ', numero)) AS nota_venta
+                           FROM ventas WHERE estado = 1 AND id_coti > 0 GROUP BY id_coti) vv
+                       ON vv.id_coti = co.cotizacion_id
                 WHERE co.id_tipo_pago = 2 AND co.estado!=2 
                     {$this->condicionPedidosCxC()}
                     $whereFechaCoti
