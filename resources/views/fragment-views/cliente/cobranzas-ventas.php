@@ -7,7 +7,7 @@
     window.__COBRANZAS_VENTAS__ = true;
     setTimeout(function () {
         var titulo = document.querySelector('.page-title');
-        if (titulo) titulo.textContent = 'Cobranzas de Ventas';
+        if (titulo) titulo.textContent = 'Cuentas por Cobrar 2';
     }, 0);
 </script>
 <?php include __DIR__ . '/cobranzas.php'; ?>
