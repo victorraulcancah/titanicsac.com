@@ -19,7 +19,7 @@ class ConsultaDelcontroller extends Controller
     }
 
     /**
-     * Filtros de reparto para el listado de pedidos: fecha, camión y día de visita.
+     * Filtros de reparto para el listado de pedidos: fecha, camión, día de visita, ruta y mercado.
      * Devuelve un arreglo de condiciones SQL ya escapadas (vacío si no se envió ningún filtro).
      * El camión se traduce a día de visita + rutas del cliente (mismo mapeo que los reportes).
      */
@@ -30,6 +30,8 @@ class ConsultaDelcontroller extends Controller
         $hasta = isset($_GET['f_hasta']) ? trim($_GET['f_hasta']) : '';
         $camion = isset($_GET['f_camion']) ? trim($_GET['f_camion']) : '';
         $dia = isset($_GET['f_dia']) ? trim($_GET['f_dia']) : '';
+        $ruta = isset($_GET['f_ruta']) ? trim($_GET['f_ruta']) : '';
+        $mercado = isset($_GET['f_mercado']) ? trim($_GET['f_mercado']) : '';
 
         // Rango de fechas del pedido (el reparto de un día atiende pedidos de días anteriores)
         if ($desde !== '') {
@@ -64,6 +66,16 @@ class ConsultaDelcontroller extends Controller
         } elseif ($dia !== '') {
             $diaEsc = $this->conexion->real_escape_string($dia);
             $cond[] = "LOWER(cl.dias_visitas) = LOWER('$diaEsc')";
+        }
+
+        // Ruta y mercado del cliente: se combinan con lo anterior
+        if ($ruta !== '') {
+            $rutaEsc = $this->conexion->real_escape_string($ruta);
+            $cond[] = "cl.id_ruta = '$rutaEsc'";
+        }
+        if ($mercado !== '') {
+            $mercadoEsc = $this->conexion->real_escape_string($mercado);
+            $cond[] = "cl.mercado = '$mercadoEsc'";
         }
 
         return $cond;

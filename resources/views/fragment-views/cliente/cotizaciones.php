@@ -28,7 +28,7 @@
                         <i class="fa fa-plus "></i> Nuevo Pedido
                     </a>
                     <?php endif; ?>
-                    <?php if ($_SESSION["rol"] != 3): // el vendedor no convierte pedidos ?>
+                    <?php if ($_SESSION["rol"] == 1): // la conversion masiva es solo del administrador ?>
                         <button id="btn-venta-masiva" class="btn btn-success"><i class="fa fa-bolt"></i> Vender Masivo</button>
                     <?php endif; ?>
                     <?php if ($_SESSION["rol"] == 1): ?>
@@ -53,15 +53,15 @@
                     $fechaDesde = $diasHabiles[1]; // el anterior a ese
                 ?>
                 <div class="row g-2 align-items-end mb-3">
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-2">
                         <label for="f_desde" class="form-label form-label-sm fs-7">Pedidos desde</label>
-                        <input type="date" id="f_desde" class="form-control form-control-sm" value="<?= $fechaDesde ?>">
+                        <input type="date" id="f_desde" class="form-control form-control-sm" value="">
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-2">
                         <label for="f_hasta" class="form-label form-label-sm fs-7">Hasta</label>
-                        <input type="date" id="f_hasta" class="form-control form-control-sm" value="<?= $fechaHasta ?>">
+                        <input type="date" id="f_hasta" class="form-control form-control-sm" value="">
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-2">
                         <label for="f_camion" class="form-label form-label-sm fs-7">Camión</label>
                         <select id="f_camion" class="form-select form-select-sm">
                             <option value="">Todos</option>
@@ -70,7 +70,7 @@
                             <option value="3">Camión 3</option>
                         </select>
                     </div>
-                    <div class="col-6 col-md-3">
+                    <div class="col-6 col-md-2">
                         <label for="f_dia" class="form-label form-label-sm fs-7">Día de visita</label>
                         <select id="f_dia" class="form-select form-select-sm">
                             <option value="">Todos</option>
@@ -81,6 +81,18 @@
                             <option value="viernes">Viernes</option>
                             <option value="sabado">Sábado</option>
                             <option value="domingo">Domingo</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label for="f_ruta" class="form-label form-label-sm fs-7">Ruta</label>
+                        <select id="f_ruta" class="form-select form-select-sm">
+                            <option value="">Todas</option>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label for="f_mercado" class="form-label form-label-sm fs-7">Mercado</label>
+                        <select id="f_mercado" class="form-select form-select-sm">
+                            <option value="">Todos</option>
                         </select>
                     </div>
                     <div class="col-12 col-md-12 d-flex gap-2 justify-content-end">
@@ -481,6 +493,8 @@
                     aoData.push({ name: "f_hasta", value: $("#f_hasta").val() });
                     aoData.push({ name: "f_camion", value: $("#f_camion").val() });
                     aoData.push({ name: "f_dia", value: $("#f_dia").val() });
+                    aoData.push({ name: "f_ruta", value: $("#f_ruta").val() });
+                    aoData.push({ name: "f_mercado", value: $("#f_mercado").val() });
                 }
             },
             order: [
@@ -585,9 +599,39 @@
         });
 
     // Filtros de reparto: al cambiar cualquiera se recarga la tabla desde el servidor
-    $("#f_desde, #f_hasta, #f_camion, #f_dia").on("change", function () {
+    $("#f_desde, #f_hasta, #f_camion, #f_dia, #f_ruta, #f_mercado").on("change", function () {
         tabla.ajax.reload();
     });
+
+    // Rutas y mercados de los filtros de reparto
+    if ($("#f_ruta").length) {
+        $.ajax({
+            url: _URL + '/ajs/admin/cliente/rutas',
+            method: 'GET',
+            success: function (response) {
+                try { if (typeof response === "string") response = JSON.parse(response); } catch (e) { return; }
+                var lista = [];
+                $.each(response, function (idx, res) { if (res.id_ruta !== '' && res.id_ruta !== null) lista.push(res.id_ruta); });
+                lista.sort(function (a, b) { return parseFloat(a) - parseFloat(b); });
+                var options = '<option value="">Todas</option>';
+                $.each(lista, function (idx, r) { options += '<option value="' + r + '">Ruta ' + r + '</option>'; });
+                $("#f_ruta").html(options);
+            }
+        });
+        $.ajax({
+            url: _URL + '/ajs/admin/cliente/mercados',
+            method: 'GET',
+            success: function (response) {
+                try { if (typeof response === "string") response = JSON.parse(response); } catch (e) { return; }
+                var lista = [];
+                $.each(response, function (idx, res) { if (res.mercado !== '' && res.mercado !== null) lista.push(res.mercado); });
+                lista.sort(function (a, b) { return parseFloat(a) - parseFloat(b); });
+                var options = '<option value="">Todos</option>';
+                $.each(lista, function (idx, m) { options += '<option value="' + m + '">Mercado ' + m + '</option>'; });
+                $("#f_mercado").html(options);
+            }
+        });
+    }
     // Vuelve al rango por defecto: los 2 días hábiles anteriores (sin contar domingo)
     $("#f_reparto_hoy").on("click", function () {
         $("#f_desde").val("<?= isset($fechaDesde) ? $fechaDesde : '' ?>");
@@ -599,6 +643,8 @@
         $("#f_hasta").val("");
         $("#f_camion").val("");
         $("#f_dia").val("");
+        $("#f_ruta").val("");
+        $("#f_mercado").val("");
         tabla.ajax.reload();
     });
 
