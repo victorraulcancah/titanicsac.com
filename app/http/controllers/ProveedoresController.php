@@ -153,6 +153,10 @@
         public function exportarExcel()
         {
             while (ob_get_level() > 0) { ob_end_clean(); }
+            // PhpSpreadsheet emite avisos de deprecacion con PHP 8.3. Si se imprimen, quedan
+            // dentro del .xlsx y el archivo no abre; se silencian solo mientras se genera.
+            ini_set('display_errors', '0');
+            error_reporting(E_ALL & ~E_DEPRECATED & ~E_NOTICE); // tampoco tiene sentido llenar el log con ellos
 
             $sql = "SELECT ruc, razon_social, nombre_comercial, direccion, telefono, telefono2,
                         email, departamento, provincia, distrito
