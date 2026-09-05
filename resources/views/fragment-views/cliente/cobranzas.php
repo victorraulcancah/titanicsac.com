@@ -88,6 +88,7 @@
                                 <select id="estado" name="estado" class="form-select form-select-sm">
                                     <option value="pendiente">Pendientes</option>
                                     <option value="pagado">Pagados</option>
+                                    <option value="todos">Todos</option>
                                 </select>
                             </div>
                         </div>
