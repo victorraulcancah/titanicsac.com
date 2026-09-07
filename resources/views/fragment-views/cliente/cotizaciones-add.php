@@ -664,7 +664,7 @@ function verificarEstadoSesion(callback) {
 				},
 				productos: [],
 				precioProductos: [],
-				usar_precio: '5',
+				usar_precio: '1', // nivel "Precio"
 				venta: {
 					dir_pos: 1,
 					tipo_doc: '6',
@@ -1048,21 +1048,23 @@ function verificarEstadoSesion(callback) {
 							app.producto.codigo = ui.item.codigo
 							app.producto.codigo_prod = ui.item.codigo_pp
 							app.producto.costo = ui.item.costo
-							app.producto.precioVenta = parseFloat(ui.item.precio_unidad == null ? parseFloat(0 + "").toFixed(4) : parseFloat(ui.item.precio_unidad + "").toFixed(4))
+							app.producto.precioVenta = ui.item.precio == null ? parseFloat(0 + "").toFixed(4) : parseFloat(ui.item.precio + "").toFixed(4)
+                            // Mismo orden y mismo tipo (string) que en la venta: si se hace parseFloat
+                            // el select no reconoce su propio valor y se ve vacio.
                             let array = [{
-                                precio: parseFloat(app.producto.precio)
+                                precio: app.producto.precio
                             },
                                 {
-                                    precio: parseFloat(app.producto.precio2)
+                                    precio: app.producto.precio2
                                 },
                                 {
-                                    precio: parseFloat(app.producto.precio2)
+                                    precio: app.producto.precio3
                                 },
                                 {
-                                    precio: parseFloat(app.producto.precio4)
+                                    precio: app.producto.precio4
                                 },
                                 {
-                                    precio: parseFloat(app.producto.precio_unidad)
+                                    precio: app.producto.precio_unidad
                                 }
                             ]
                             app.producto.precioProductos =array
@@ -1507,24 +1509,24 @@ function verificarEstadoSesion(callback) {
 				 app.producto.precio3 = parseFloat(ui.item.precio3 + "").toFixed(2)
 				 app.producto.precio4 = parseFloat(ui.item.precio4 + "").toFixed(2)
 				 app.producto.precio_unidad = parseFloat(ui.item.precio_unidad + "").toFixed(2) */
-				app.producto.precioVenta = parseFloat(ui.item.precio + "").toFixed(4)
+				app.producto.precioVenta = ui.item.precio == null ? parseFloat(0 + "").toFixed(4) : parseFloat(ui.item.precio + "").toFixed(4)
 				app.producto.codigo = ui.item.codigo
 				app.producto.codigo_prod = ui.item.codigo_pp
 				app.producto.costo = ui.item.costo
 				let array = [{
-						precio: parseFloat(app.producto.precio_unidad)
+						precio: app.producto.precio
 					},
 					{
-						precio: parseFloat(app.producto.precio4)
+						precio: app.producto.precio2
 					},
 					{
-						precio: parseFloat(app.producto.precio)
+						precio: app.producto.precio3
 					},
 					{
-						precio: parseFloat(app.producto.precio2)
+						precio: app.producto.precio4
 					},
 					{
-						precio: parseFloat(app.producto.precio3)
+						precio: app.producto.precio_unidad
 					},
 				]
                 app.producto.precioProductos =array

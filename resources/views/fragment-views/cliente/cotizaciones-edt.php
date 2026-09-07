@@ -149,7 +149,7 @@ console.log('DEBUG: Valor del input #cotizacion:', $('#cotizacion').val());
                                                         <div class="row  col-lg-2">
                                                             <label for="example-text-input" class=" col-form-label">Precio</label>
                                                             <div class="input-group">
-                                                                <select name="" id="" class="form-control" v-model="producto.precio">
+                                                                <select name="" id="" class="form-control" v-model="producto.precioVenta">
                                                                     <option v-for="(value, key) in precioProductos" :value="value.precio" :key="key">{{ value.precio }}</option>
                                                                 </select>
                                                             </div>
@@ -968,23 +968,25 @@ console.log('DEBUG: Valor del input #cotizacion:', $('#cotizacion').val());
                  app.producto.precio3 = parseFloat(ui.item.precio3 + "").toFixed(2)
                  app.producto.precio4 = parseFloat(ui.item.precio4 + "").toFixed(2)
                  app.producto.precio_unidad = parseFloat(ui.item.precio_unidad + "").toFixed(2) */
-                app.producto.precioVenta = parseFloat(ui.item.precio + "").toFixed(2)
+                app.producto.precioVenta = ui.item.precio == null ? parseFloat(0 + "").toFixed(2) : parseFloat(ui.item.precio + "").toFixed(2)
                 app.producto.codigo = ui.item.codigo
                 app.producto.costo = ui.item.costo
+                // Mismo orden y mismo tipo (string) que en la venta: con parseFloat el select
+                // no reconoce su propio valor y se queda en blanco.
                 let array = [{
-                    precio: parseFloat(app.producto.precio)
+                    precio: app.producto.precio
                 },
                     {
-                        precio: parseFloat(app.producto.precio2)
+                        precio: app.producto.precio2
                     },
                     {
-                        precio: parseFloat(app.producto.precio2)
+                        precio: app.producto.precio3
                     },
                     {
-                        precio: parseFloat(app.producto.precio4)
+                        precio: app.producto.precio4
                     },
                     {
-                        precio: parseFloat(app.producto.precio_unidad)
+                        precio: app.producto.precio_unidad
                     }
                 ]
                 app.producto.precioProductos =array

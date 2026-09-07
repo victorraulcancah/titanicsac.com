@@ -247,7 +247,7 @@ if (isset($_GET["coti"])) {
                                         <div class="col-12 col-lg-3">
                                             <label for="example-text-input" class=" col-form-label">Precio</label>
                                             <div class="input-group">
-                                                <select name="" id="" class="form-control" v-model="producto.precio_unidad">
+                                                <select name="" id="" class="form-control" v-model="producto.precioVenta">
                                                     <option v-for="(value, key) in precioProductos" :value="value.precio" :key="key">{{ value.precio }}</option>
                                                 </select>
                                             </div>
@@ -907,7 +907,7 @@ if (isset($_GET["coti"])) {
                     presentacion: '1',
                     presentacionCnt: '1',
                 },
-                usar_precio: '5',
+                usar_precio: '1', // nivel "Precio": el mismo con el que nace el pedido
                 productos: [],
                 metodosPago: [],
                 metodosPagoCxC: ["Efectivo", "Plin", "Yape", "BCP", "BBVA"], // mismas opciones que Cuentas por Cobrar
@@ -1224,7 +1224,7 @@ if (isset($_GET["coti"])) {
                                         app.producto.precio3 = ui.item.precio3 == null ? parseFloat(0 + "").toFixed(4) : parseFloat(ui.item.precio3 + "").toFixed(4)
                                         app.producto.precio4 = ui.item.precio4 == null ? parseFloat(0 + "").toFixed(4) : parseFloat(ui.item.precio4 + "").toFixed(4)
                                         app.producto.precio_unidad = ui.item.precio_unidad == null ? parseFloat(0 + "").toFixed(4) : parseFloat(ui.item.precio_unidad + "").toFixed(4)
-                                        app.producto.precioVenta = parseFloat(ui.item.precio_unidad + "").toFixed(4)
+                                        app.producto.precioVenta = ui.item.precio == null ? parseFloat(0 + "").toFixed(4) : parseFloat(ui.item.precio + "").toFixed(4)
                                         app.producto.codigo = ui.item.codigo
                                         app.producto.costo = ui.item.costo
                                         let array = [{
@@ -1411,7 +1411,7 @@ if (isset($_GET["coti"])) {
                             app.producto.precio_unidad = ui.item.precio_unidad == null ? parseFloat(0 + "").toFixed(4) : ui.item.precio_unidad
                             app.producto.codigo = ui.item.codigo
                             app.producto.costo = ui.item.costo
-                            app.producto.precioVenta = ui.item.precio_unidad == null ? parseFloat(0 + "").toFixed(4) : ui.item.precio_unidad
+                            app.producto.precioVenta = ui.item.precio == null ? parseFloat(0 + "").toFixed(4) : ui.item.precio
                             let array = [{
                                     precio: app.producto.precio
                                 },
@@ -1799,7 +1799,7 @@ if (isset($_GET["coti"])) {
 
                         this.productos.push(prod)
                         this.limpiasDatos();
-                        this.usar_precio = 5
+                        this.usar_precio = 1
                     } else {
                         alertAdvertencia("Busque un producto primero")
                             .then(function() {
@@ -2168,7 +2168,7 @@ if (isset($_GET["coti"])) {
                 app.producto.precio3 = ui.item.precio3 == null ? parseFloat(0 + "").toFixed(4) : parseFloat(ui.item.precio3 + "").toFixed(4)
                 app.producto.precio4 = ui.item.precio4 == null ? parseFloat(0 + "").toFixed(4) : parseFloat(ui.item.precio4 + "").toFixed(4)
                 app.producto.precio_unidad = ui.item.precio_unidad == null ? parseFloat(0 + "").toFixed(4) : ui.item.precio_unidad
-                app.producto.precioVenta = ui.item.precio_unidad
+                app.producto.precioVenta = ui.item.precio == null ? parseFloat(0 + "").toFixed(4) : ui.item.precio
                 app.producto.codigo = ui.item.codigo
                 app.producto.costo = ui.item.costo
                 let array = [{
