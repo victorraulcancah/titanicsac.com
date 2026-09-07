@@ -637,7 +637,7 @@
                         class: "text-center",
                         render: function (data, type, row) {
                             return `<div class="text-center">
-                                        <div class="btn-group"><button data-id="${Number(
+                                        <div class="btn-group"><button data-tipo="${row.tipo_co}" data-id="${Number(
                                 row.id_venta
                             )}" class="btn btn-success btnDetallesProductos btn-sm"><i class="fa fa-eye"></i> </button></div></div>`;
                         },
@@ -678,6 +678,7 @@
             var table = $("#tablaMaquina").DataTable();
             var trid = $(this).closest("tr").attr("id");
             var id = $(this).data("id");
+            var tipoDoc = $(this).data("tipo"); // 'v' venta, 'c' pedido
 
             console.log("ID Venta:", id);
 
@@ -693,7 +694,8 @@
                 url: _URL + "/ajas/getAllProductos/byIdVenta",
                 type: "POST",
                 data: {
-                    id: id
+                    id: id,
+                    tipo: tipoDoc // cada documento lee su propio detalle
                 },
                 success: function (resp) {
                     $("#loader-menor").hide();

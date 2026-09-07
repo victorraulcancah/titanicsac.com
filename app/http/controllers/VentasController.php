@@ -54,18 +54,36 @@ class VentasController extends Controller
     public function getAllByProductosIdVenta($request)
     {
         try {
-            $id = $request->id;
+            $id = intval($request->id);
+            // 'v' = venta, cualquier otro valor = pedido (asi lo manda la pantalla de cobranzas)
+            $tipo = isset($_POST['tipo']) ? trim($_POST['tipo']) : 'c';
 
-            $sql = "SELECT 
-                    pc.id_producto, 
-                    pc.cantidad, 
-                    pc.presenta_cnt,
-                    p.precio, 
-                    (pc.cantidad * pc.presenta_cnt * p.precio) AS total, 
-                    p.descripcion 
-                FROM productos_cotis pc
-                INNER JOIN productos p ON p.id_producto = pc.id_producto
-                WHERE id_coti = '$id'";
+            // El precio es SIEMPRE el pactado en el documento (pc.precio / pv.precio), nunca el
+            // del catalogo: si el producto cambia de precio, el documento debe seguir mostrando
+            // lo que se cobro. El precio es por presentacion, asi que el parcial es cantidad x precio.
+            if ($tipo === 'v') {
+                $sql = "SELECT 
+                        pv.id_producto, 
+                        pv.cantidad, 
+                        pv.presenta_cnt,
+                        pv.precio, 
+                        (pv.cantidad * pv.precio) AS total, 
+                        p.descripcion 
+                    FROM productos_ventas pv
+                    INNER JOIN productos p ON p.id_producto = pv.id_producto
+                    WHERE pv.id_venta = '$id'";
+            } else {
+                $sql = "SELECT 
+                        pc.id_producto, 
+                        pc.cantidad, 
+                        pc.presenta_cnt,
+                        pc.precio, 
+                        (pc.cantidad * pc.precio) AS total, 
+                        p.descripcion 
+                    FROM productos_cotis pc
+                    INNER JOIN productos p ON p.id_producto = pc.id_producto
+                    WHERE pc.id_coti = '$id'";
+            }
 
             $result = $this->conexion->query($sql);
             return json_encode($result->fetch_all(MYSQLI_ASSOC));
