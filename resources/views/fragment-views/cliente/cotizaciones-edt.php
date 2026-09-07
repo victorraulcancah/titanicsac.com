@@ -164,7 +164,7 @@ console.log('DEBUG: Valor del input #cotizacion:', $('#cotizacion').val());
                                         </div>
                                         <div class="row">
                                             <div class="col-md-9"></div>
-                                            <div class="col-md-3" v-if="productos.length > 0">
+                                            <div class="col-md-3">
                                                 <label for="">Usar</label>
                                                 <select name="" id="" class="form-control text-right" v-model="usar_precio" @change="cambiarPrecio($event)">
                                                     <option value="1">Precio</option>

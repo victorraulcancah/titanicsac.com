@@ -150,14 +150,14 @@
                                                                     <span class="input-group-text" >{{producto.medida}}</span>
                                                                 </div>
 															</div>
-															<!--<div class="row  col-lg-2">-->
-															<!--	<label for="example-text-input" class=" col-form-label">Precio</label>-->
-															<!--	<div class="input-group">-->
-															<!--		<select name="" id="" class="form-control" v-model="producto.precio">-->
-															<!--			<option v-for="(value, key) in precioProductos" :value="value.precio" :key="key">{{ value.precio }}</option>-->
-															<!--		</select>-->
-															<!--	</div>-->
-															<!--</div>-->
+															<div class="row  col-lg-2">
+																<label for="example-text-input" class=" col-form-label">Precio</label>
+																<div class="input-group">
+																	<select name="" id="" class="form-control" v-model="producto.precioVenta">
+																		<option v-for="(value, key) in precioProductos" :value="value.precio" :key="key">{{ value.precio }}</option>
+																	</select>
+																</div>
+															</div>
 															<div class="col">
                                                                 <label  class="  control-label" style="color: white">.</label><br>
 																<button id="submit-a-product" type="submit" class="btn btn-success"><i class="fa fa-check"></i> Agregar
@@ -177,16 +177,16 @@
 												<div class="text-left col-md-9">
 													<h4>Producto</h4>
 												</div>
-												<!--<div class="col-md-3" v-if="productos.length > 0">-->
-												<!--	<label for="">Usar</label>-->
-												<!--	<select name="" id="" class="form-control text-right" v-model="usar_precio" @change="cambiarPrecio($event)">-->
-												<!--		<option value="1">Precio</option>-->
-												<!--		<option value="2">Credito 1</option>-->
-												<!--		<option value="3">Credito 2</option>-->
-												<!--		<option value="4">Precio x Saco</option>-->
-												<!--		<option value="5">Precio x Mayor</option>-->
-												<!--	</select>-->
-												<!--</div>-->
+												<div class="col-md-3">
+													<label for="">Usar</label>
+													<select name="" id="" class="form-control text-right" v-model="usar_precio" @change="cambiarPrecio($event)">
+														<option value="1">Precio</option>
+														<option value="2">Credito 1</option>
+														<option value="3">Credito 2</option>
+														<option value="4">Precio x Saco</option>
+														<option value="5">Precio x Mayor</option>
+													</select>
+												</div>
 											</div>
 											<table class="table" style="width: 100%; ">
 												<thead>

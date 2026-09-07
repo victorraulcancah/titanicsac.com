@@ -100,7 +100,7 @@ if (isset($_GET["coti"])) {
                                         <div class="row  col-lg-3">
                                             <label for="example-text-input" class=" col-form-label">Precio</label>
                                             <div class="input-group">
-                                                <select name="" id="" class="form-control" v-model="producto.precio_unidad">
+                                                <select name="" id="" class="form-control" v-model="producto.precioVenta">
                                                     <option v-for="(value, key) in precioProductos" :value="value.precio" :key="key">{{ value.precio }}</option>
                                                 </select>
                                             </div>
@@ -114,6 +114,20 @@ if (isset($_GET["coti"])) {
 
 
                             </form>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-9"></div>
+                            <div class="col-md-3">
+                                <label for="">Usar</label>
+                                <select name="" id="" class="form-control text-right" v-model="usar_precio" @change="cambiarPrecio($event)">
+                                    <option value="1">Precio</option>
+                                    <option value="2">Credito 1</option>
+                                    <option value="3">Credito 2</option>
+                                    <option value="4">Precio x Saco</option>
+                                    <option value="5">Precio x Mayor</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div class="col-md-12 mt-5">
@@ -532,6 +546,7 @@ if (isset($_GET["coti"])) {
                     presentacion:'1',
                     presentacionCnt:'1',
                 },
+                usar_precio: '1', // nivel "Precio", igual que en el pedido y en la venta nueva
                 productos: [],
                 precioProductos: [],
                 venta: {
@@ -780,6 +795,27 @@ if (isset($_GET["coti"])) {
                     let derivada = parseFloat(item.presenta_cnt ?? item.presentacionCnt ?? 1) || 1;
                     return Math.round(parseFloat(item.cantidad || 0) * derivada * 100) / 100;
                 },
+                cambiarPrecio(event) {
+                    // Reaplica el nivel de precio elegido a todo el detalle (igual que en la venta nueva)
+                    this.productos.forEach(element => {
+                        if (event.target.value == 1) {
+                            element.precioVenta = element.precio
+                            element.precio_usado = '1'
+                        } else if (event.target.value == 2) {
+                            element.precioVenta = element.precio2
+                            element.precio_usado = '2'
+                        } else if (event.target.value == 3) {
+                            element.precioVenta = element.precio3
+                            element.precio_usado = '3'
+                        } else if (event.target.value == 4) {
+                            element.precioVenta = element.precio4
+                            element.precio_usado = '4'
+                        } else {
+                            element.precioVenta = element.precio_unidad
+                            element.precio_usado = '5'
+                        }
+                    });
+                },
                 setCantidadFinal(item, valor) {
                     // El usuario escribe la cantidad FINAL (ej. 5.9 kilos); internamente se guarda
                     // cantidad = final / unidad derivada con 6 decimales, así el total sale exacto.
@@ -969,7 +1005,7 @@ if (isset($_GET["coti"])) {
 
                         this.productos.push(prod)
                         this.limpiasDatos();
-                        this.usar_precio = 5
+                        this.usar_precio = 1
                     } else {
                         alertAdvertencia("Busque un producto primero")
                             .then(function() {
@@ -1113,7 +1149,7 @@ if (isset($_GET["coti"])) {
                 app.producto.precio3 = ui.item.precio3 == null ? parseFloat(0 + "").toFixed(4) : parseFloat(ui.item.precio3 + "").toFixed(4)
                 app.producto.precio4 = ui.item.precio4 == null ? parseFloat(0 + "").toFixed(4) : parseFloat(ui.item.precio4 + "").toFixed(4)
                 app.producto.precio_unidad = ui.item.precio_unidad == null ? parseFloat(0 + "").toFixed(4) : ui.item.precio_unidad
-                app.producto.precioVenta = ui.item.precio_unidad
+                app.producto.precioVenta = ui.item.precio == null ? parseFloat(0 + "").toFixed(4) : ui.item.precio
                 app.producto.codigo = ui.item.codigo
                 app.producto.costo = ui.item.costo
                 let array = [{

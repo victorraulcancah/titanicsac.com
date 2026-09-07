@@ -263,20 +263,24 @@ if (isset($_GET["coti"])) {
                             </form>
                         </div>
 
+                        <div class="row">
+                            <div class="col-md-9"></div>
+                            <div class="col-md-3">
+                                <label for="">Usar</label>
+                                <select name="" id="" class="form-control text-right" v-model="usar_precio" @change="cambiarPrecio($event)">
+                                    <option value="1">Precio</option>
+                                    <option value="2">Credito 1</option>
+                                    <option value="3">Credito 2</option>
+                                    <option value="4">Precio x Saco</option>
+                                    <option value="5">Precio x Mayor</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div class="col-md-12 mt-5">
                             <div class="row">
                                 <div class="text-left col-md-9">
                                     <h4>Detalle Venta</h4>
-                                </div>
-                                <div class="col-md-3" v-if="productos.length > 0">
-                                    <label for="">Usar</label>
-                                    <select name="" id="" class="form-control text-right" v-model="usar_precio" @change="cambiarPrecio($event)">
-                                        <option value="1">Precio</option>
-                                        <option value="2">Credito 1</option>
-                                        <option value="3">Credito 2</option>
-                                        <option value="4">Precio x Saco</option>
-                                        <option value="5">Precio x Mayor</option>
-                                    </select>
                                 </div>
                             </div>
                             <!-- table-responsive: en móvil la tabla se desplaza en horizontal en vez de romper la página -->
