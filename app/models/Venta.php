@@ -375,7 +375,15 @@ private $idCoti;
     }
     public function editar($id_venta)
     {
-        $sql = "UPDATE ventas set medoto_pago_id='{$_POST['metodo']}',moneda='{$_POST['moneda']}',cm_tc='{$_POST['tc']}',apli_igv='$this->apli_igv', id_tido='$this->id_tido',id_tipo_pago='$this->id_tipo_pago',fecha_emision='$this->fecha',
+        // medoto_pago_id es entero: si el formulario no manda metodo (venta a credito, o no se
+        // toco el selector) llega '' y MySQL rechaza el UPDATE. En ese caso se conserva el que
+        // ya tiene la venta en vez de escribir una cadena vacia.
+        $metodoPost = isset($_POST['metodo']) ? trim($_POST['metodo']) : '';
+        $sqlMetodo = ($metodoPost !== '' && is_numeric($metodoPost))
+            ? "medoto_pago_id='" . intval($metodoPost) . "'"
+            : "medoto_pago_id=medoto_pago_id";
+
+        $sql = "UPDATE ventas set $sqlMetodo,moneda='{$_POST['moneda']}',cm_tc='{$_POST['tc']}',apli_igv='$this->apli_igv', id_tido='$this->id_tido',id_tipo_pago='$this->id_tipo_pago',fecha_emision='$this->fecha',
         fecha_vencimiento='$this->fechaVenc',dias_pagos='$this->dias_pagos',direccion='$this->direccion',
         id_cliente='$this->id_cliente',total='$this->total',igv='$this->igv',id_empresa='$this->id_empresa',
                    observacion='$this->observa' WHERE id_venta = '$id_venta' ";
