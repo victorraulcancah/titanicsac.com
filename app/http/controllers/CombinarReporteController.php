@@ -36,6 +36,29 @@ class CombinarReporteController extends Controller
         $this->ensureProductosCotisFechaRegistro();
     }
 
+    /**
+     * Saldo pendiente del cliente segun CUENTAS POR COBRAR 2: la deuda vive en las VENTAS
+     * (ventas vigentes a credito menos lo realmente cobrado en dias_ventas), ya no en los pedidos.
+     * $condFecha es la condicion de corte, ya armada sobre v.fecha_emision.
+     */
+    private function saldoDeudaVentasCliente($idCliente, $condFecha)
+    {
+        $idCliente = intval($idCliente);
+        $idEmpresa = isset($_SESSION['id_empresa']) ? intval($_SESSION['id_empresa']) : 0;
+        $filtro = "v.estado = 1 AND v.id_tipo_pago = 2
+                   AND v.id_cliente = $idCliente AND v.id_empresa = '$idEmpresa' $condFecha";
+
+        $total = $this->conexion->query("SELECT IFNULL(SUM(v.total), 0) AS total
+                                         FROM ventas v WHERE $filtro")->fetch_assoc()['total'];
+
+        $pagado = $this->conexion->query("SELECT IFNULL(SUM(dv.monto), 0) AS pagado
+                                          FROM ventas v
+                                          INNER JOIN dias_ventas dv ON dv.id_venta = v.id_venta AND dv.estado = '1'
+                                          WHERE $filtro")->fetch_assoc()['pagado'];
+
+        return number_format(max(0, $total - $pagado), 2);
+    }
+
     private function ensureProductosCotisFechaRegistro()
     {
         $columna = $this->conexion->query("SHOW COLUMNS FROM productos_cotis LIKE 'fecha_registro'");
@@ -90,22 +113,11 @@ class CombinarReporteController extends Controller
 
         $sql = "SELECT * FROM cotizaciones WHERE cotizacion_id = '$coti'";
         $datoVenta = $this->conexion->query($sql)->fetch_assoc();
-        // TOTAL PAGADO DE LAS CUOTAS QUE RESTAREMOS CON EL TOTAL DE LA COTIZACIONES
-        $totalMontoCuotasCotizacion = $this->conexion->query("
-    SELECT IFNULL(SUM(cc.monto), 0) AS total_monto
-    FROM `cotizaciones` c
-    LEFT JOIN `cuotas_cotizacion` cc ON cc.id_coti = c.cotizacion_id
-    WHERE c.estado!=2 AND c.id_cliente = " . $datoVenta['id_cliente'] . "
-    AND DATE(c.fecha) != CURDATE()
-")->fetch_assoc()['total_monto'];
-
-        $sumaTotalCotizacion = $this->conexion->query("
-    SELECT IFNULL(SUM(total), 0) as total 
-    FROM `cotizaciones` 
-    WHERE estado!=2 AND `id_cliente` = " . $datoVenta['id_cliente'] . " 
-    AND DATE(fecha) != CURDATE()
-")->fetch_assoc()['total'];
-        $SaldoPendientePagar = max(0, $sumaTotalCotizacion - $totalMontoCuotasCotizacion);
+        // La deuda que se imprime es la de CUENTAS POR COBRAR 2 (ventas), no la de los pedidos
+        $SaldoPendientePagar = $this->saldoDeudaVentasCliente(
+            $datoVenta['id_cliente'],
+            "AND DATE(v.fecha_emision) != CURDATE()"
+        );
 
         $datoEmpresa = $this->conexion->query("SELECT * FROM empresas WHERE id_empresa = " . $_SESSION['id_empresa'])->fetch_assoc();
 
@@ -837,24 +849,11 @@ class CombinarReporteController extends Controller
 
             $sql = "SELECT * FROM cotizaciones WHERE cotizacion_id = '$coti'";
             $datoVenta = $this->conexion->query($sql)->fetch_assoc();
-            // TOTAL PAGADO DE LAS CUOTAS QUE RESTAREMOS CON EL TOTAL DE LA COTIZACIONES
-            $totalMontoCuotasCotizacion = $this->conexion->query("
-                SELECT IFNULL(SUM(cc.monto), 0) AS total_monto
-                FROM `cotizaciones` c
-                LEFT JOIN `cuotas_cotizacion` cc ON cc.id_coti = c.cotizacion_id
-                WHERE c.estado!=2 AND c.id_cliente = " . $datoVenta['id_cliente'] . "
-                AND DATE(c.fecha) < DATE_SUB(CURDATE(), INTERVAL $dias_acum DAY) 
-                ")->fetch_assoc()['total_monto'];
-
-            $sumaTotalCotizacion = $this->conexion->query("
-                    SELECT IFNULL(SUM(total), 0) as total 
-                    FROM `cotizaciones` 
-                    WHERE estado!=2 AND `id_cliente` = " . $datoVenta['id_cliente'] . " 
-                    AND DATE(fecha) < DATE_SUB(CURDATE(), INTERVAL $dias_acum DAY) 
-                ")->fetch_assoc()['total'];
-
-
-            $SaldoPendientePagar = max(0, $sumaTotalCotizacion - $totalMontoCuotasCotizacion);
+            // La deuda que se imprime es la de CUENTAS POR COBRAR 2 (ventas), no la de los pedidos
+            $SaldoPendientePagar = $this->saldoDeudaVentasCliente(
+                $datoVenta['id_cliente'],
+                "AND DATE(v.fecha_emision) < DATE_SUB(CURDATE(), INTERVAL $dias_acum DAY)"
+            );
 
             $datoEmpresa = $this->conexion->query("SELECT * FROM empresas WHERE id_empresa = " . $_SESSION['id_empresa'])->fetch_assoc();
 
@@ -1355,28 +1354,11 @@ class CombinarReporteController extends Controller
 
             $sql = "SELECT * FROM cotizaciones WHERE cotizacion_id = '$coti'";
             $datoVenta = $this->conexion->query($sql)->fetch_assoc();
-            // TOTAL PAGADO DE LAS CUOTAS PAGADAS (estado=1) DE PEDIDOS NO ANULADOS
-            $totalMontoCuotasCotizacion = $this->conexion->query("
-                SELECT IFNULL(SUM(cc.monto), 0) AS total_monto
-                FROM `cotizaciones` c
-                INNER JOIN `cuotas_cotizacion` cc ON cc.id_coti = c.cotizacion_id
-                WHERE c.estado != 2 
-                AND cc.estado = 1 
-                AND c.id_cliente = " . $datoVenta['id_cliente'] . "
-                AND DATE(c.fecha) < DATE_SUB(CURDATE(), INTERVAL $dias_acum DAY) 
-            ")->fetch_assoc()['total_monto'];
-
-            // TOTAL DE DEUDA (SOLO PEDIDOS A CRÉDITO Y NO ANULADOS)
-            $sumaTotalCotizacion = $this->conexion->query("
-                SELECT IFNULL(SUM(total), 0) as total 
-                FROM `cotizaciones` 
-                WHERE estado != 2 
-                AND id_tipo_pago = 2
-                AND `id_cliente` = " . $datoVenta['id_cliente'] . " 
-                AND DATE(fecha) < DATE_SUB(CURDATE(), INTERVAL $dias_acum DAY) 
-            ")->fetch_assoc()['total'];
-
-            $SaldoPendientePagar = max(0, $sumaTotalCotizacion - $totalMontoCuotasCotizacion);
+            // La deuda que se imprime es la de CUENTAS POR COBRAR 2 (ventas), no la de los pedidos
+            $SaldoPendientePagar = $this->saldoDeudaVentasCliente(
+                $datoVenta['id_cliente'],
+                "AND DATE(v.fecha_emision) < DATE_SUB(CURDATE(), INTERVAL $dias_acum DAY)"
+            );
 
             $datoEmpresa = $this->conexion->query("SELECT * FROM empresas WHERE id_empresa = " . $_SESSION['id_empresa'])->fetch_assoc();
 
