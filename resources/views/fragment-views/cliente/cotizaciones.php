@@ -266,9 +266,9 @@
                     <label for="filtro-horario-camion" class="mt-2">Filtrar por horario:</label>
                     <select id="filtro-horario-camion" class="form-control">
                         <option value="todos">Todos</option>
-                        <option value="primer_corte">PRIMER CORTE — Pedidos base (00:00 - 08:00 día carga)</option>
-                        <option value="segundo_corte">SEGUNDO CORTE — Aumentos (08:00 - 15:00 día carga)</option>
-                        <option value="tercer_corte">TERCER CORTE — Aumentos (15:00 - 23:59 día carga)</option>
+                        <option value="primer_corte">PRIMER CORTE — Pedidos base (00:00 - 15:00 día carga)</option>
+                        <option value="segundo_corte">SEGUNDO CORTE — Aumentos (15:00 - 17:00 día carga)</option>
+                        <option value="tercer_corte">TERCER CORTE — Aumentos (17:00 - 23:59 día carga)</option>
                     </select>
                 </div>
                 <div id="imprimirPorRuta" class="mt-3" style="display:none;">
@@ -283,9 +283,9 @@
                     <label for="filtro-horario" class="mt-2">Filtrar por horario:</label>
                     <select id="filtro-horario" class="form-control">
                         <option value="todos">Todos</option>
-                        <option value="primer_corte">PRIMER CORTE — Pedidos base (00:00 - 08:00 día carga)</option>
-                        <option value="segundo_corte">SEGUNDO CORTE — Aumentos (08:00 - 15:00 día carga)</option>
-                        <option value="tercer_corte">TERCER CORTE — Aumentos (15:00 - 23:59 día carga)</option>
+                        <option value="primer_corte">PRIMER CORTE — Pedidos base (00:00 - 15:00 día carga)</option>
+                        <option value="segundo_corte">SEGUNDO CORTE — Aumentos (15:00 - 17:00 día carga)</option>
+                        <option value="tercer_corte">TERCER CORTE — Aumentos (17:00 - 23:59 día carga)</option>
                     </select>
                 </div>
                 <div id="imprimirPorMedida" class="mt-3" style="display:none;">
@@ -349,9 +349,9 @@
                     <label for="horarioLog">Corte de horario (Opcional):</label>
                     <select id="horarioLog" class="form-control">
                         <option value="todos">Todos</option>
-                        <option value="primer_corte">PRIMER CORTE — Pedidos base (00:00 - 08:00 día carga)</option>
-                        <option value="segundo_corte">SEGUNDO CORTE — Aumentos (08:00 - 15:00 día carga)</option>
-                        <option value="tercer_corte">TERCER CORTE — Aumentos (15:00 - 23:59 día carga)</option>
+                        <option value="primer_corte">PRIMER CORTE — Pedidos base (00:00 - 15:00 día carga)</option>
+                        <option value="segundo_corte">SEGUNDO CORTE — Aumentos (15:00 - 17:00 día carga)</option>
+                        <option value="tercer_corte">TERCER CORTE — Aumentos (17:00 - 23:59 día carga)</option>
                     </select>
                 </div>
                 <div class="mt-3">
