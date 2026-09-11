@@ -58,7 +58,34 @@ class FragmentController extends Controller
                     ? trim($cliente_data['documento'] . ' | ' . $cliente_data['datos'], ' |')
                     : 'Sin cliente';
 
-                $sql_cuotas = "
+                // Si el pedido ya se convirtio en venta, la deuda vive en CUENTAS POR COBRAR 2:
+                // las cuotas, lo pagado y el saldo se leen de la venta (dias_ventas), porque los
+                // cobros hechos despues de convertir ya no se registran en el pedido.
+                $stmt_venta = $conectar->prepare("SELECT id_venta, serie, numero, total FROM ventas
+                                                  WHERE id_coti = ? AND estado = 1 LIMIT 1");
+                $stmt_venta->bind_param('i', $idCoti);
+                $stmt_venta->execute();
+                $venta = $stmt_venta->get_result()->fetch_assoc();
+
+                if ($venta) {
+                    $totalDocumento = $venta['total'];
+                    $idDocumento = intval($venta['id_venta']);
+                    $sql_cuotas = "
+            SELECT 
+                dv.monto, 
+                dv.estado AS estado_cuota,
+                dv.fecha,
+                dv.tipo_pago,
+                dv.id_usuario,
+                u.usuario AS usuario_cobro
+            FROM dias_ventas dv
+            LEFT JOIN usuarios u ON u.usuario_id = dv.id_usuario
+            WHERE dv.id_venta = ?
+        ";
+                } else {
+                    $totalDocumento = $cotizacion['total'];
+                    $idDocumento = $idCoti;
+                    $sql_cuotas = "
             SELECT 
                 cc.monto, 
                 cc.estado AS estado_cuota,
@@ -70,9 +97,13 @@ class FragmentController extends Controller
             LEFT JOIN usuarios u ON u.usuario_id = cc.id_usuario
             WHERE cc.id_coti = ?
         ";
+                }
+                $lineaVenta = $venta
+                    ? "<li><strong>Nota de Venta:</strong> {$venta['serie']}-{$venta['numero']}</li>"
+                    : "";
 
                 $stmt_cuotas = $conectar->prepare($sql_cuotas);
-                $stmt_cuotas->bind_param('i', $idCoti);
+                $stmt_cuotas->bind_param('i', $idDocumento);
                 $stmt_cuotas->execute();
                 $result_cuotas = $stmt_cuotas->get_result();
                 $estado = ($cotizacion['estado'] == 1) ? 'Pagado' : 'Sin pagar';
@@ -101,7 +132,8 @@ class FragmentController extends Controller
                             <li><strong>ID:</strong> {$cotizacion['cotizacion_id']}</li>
                             <li><strong>Número:</strong> {$cotizacion['numero']}</li>
                             <li><strong>Fecha:</strong> {$cotizacion['fecha']}</li>
-                            <li><strong>Total:</strong> S/ {$cotizacion['total']}</li>
+                            <li><strong>Total:</strong> S/ {$totalDocumento}</li>
+                            {$lineaVenta}
                             <li><strong>Cliente:</strong> {$cliente}</li>
                             <li><strong>Vendedor:</strong> {$vendedor}</li>
                         </ul>
@@ -146,7 +178,7 @@ class FragmentController extends Controller
                     </div>
                     <div class='footer'>
                         <p style='text-align: right; font-size: 16px;'> <strong>TOTAL PAGADO : S/ " . number_format($totalpagado, 2) . "</strong></p>
-                        <p style='text-align: right; font-size: 16px; color: red;'> <strong>SALDO PENDIENTE : S/ " . number_format($cotizacion['total'] - $totalpagado, 2) . "</strong></p>
+                        <p style='text-align: right; font-size: 16px; color: red;'> <strong>SALDO PENDIENTE : S/ " . number_format(max(0, $totalDocumento - $totalpagado), 2) . "</strong></p>
                     </div>
                 </body>
                 </html>";
