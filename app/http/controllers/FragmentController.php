@@ -237,11 +237,9 @@ class FragmentController extends Controller
     }
     public function cobranzas()
     {
-        // El repartidor no entra a Cuentas por Cobrar: se le sirve la de VENTAS
-        if (isset($_SESSION['rol']) && $_SESSION['rol'] == 7) {
-            return $this->view("fragment-views/cliente/cobranzas-ventas");
-        }
-        return $this->view("fragment-views/cliente/cobranzas");
+        // Cuentas por Cobrar es la de VENTAS para todos los roles. La vieja (deuda de pedidos)
+        // queda oculta: quien entre por /cobranzas, aunque sea por un enlace guardado, ve esta.
+        return $this->view("fragment-views/cliente/cobranzas-ventas");
     }
     public function cobranzasVentas()
     {

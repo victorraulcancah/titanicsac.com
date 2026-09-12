@@ -76,13 +76,8 @@ $id_role = isset($_SESSION['rol'])?$_SESSION['rol']:1;
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="<?= DOMINIO ?>cobranzas">
-                    <i class="fa fa-money-bill"></i>CUENTAS POR COBRAR
-                </a>
-            </li>
-            <li class="nav-item">
                 <a class="nav-link" href="<?= DOMINIO ?>cobranzas/ventas">
-                    <i class="fa fa-money-bill"></i>CUENTAS POR COBRAR 2
+                    <i class="fa fa-money-bill"></i>CUENTAS POR COBRAR
                 </a>
             </li>
             <li class="nav-item">
@@ -164,7 +159,7 @@ $id_role = isset($_SESSION['rol'])?$_SESSION['rol']:1;
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="<?= DOMINIO ?>cobranzas/ventas">
-                    <i class="fa fa-money-bill"></i>CUENTAS POR COBRAR 2
+                    <i class="fa fa-money-bill"></i>CUENTAS POR COBRAR
                 </a>
             </li>
             <li class="nav-item">
@@ -180,13 +175,8 @@ $id_role = isset($_SESSION['rol'])?$_SESSION['rol']:1;
         <?php if($id_role == "4"): ?>
         <ul class="navbar-nav me-auto mb-2 mb-lg-0 w-100">
             <li class="nav-item">
-                <a class="nav-link" href="<?= DOMINIO ?>cobranzas">
-                    <i class="fa fa-money-bill"></i>CUENTAS POR COBRAR
-                </a>
-            </li>
-            <li class="nav-item">
                 <a class="nav-link" href="<?= DOMINIO ?>cobranzas/ventas">
-                    <i class="fa fa-money-bill"></i>CUENTAS POR COBRAR 2
+                    <i class="fa fa-money-bill"></i>CUENTAS POR COBRAR
                 </a>
             </li>
             <li class="nav-item">
@@ -223,7 +213,7 @@ $id_role = isset($_SESSION['rol'])?$_SESSION['rol']:1;
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="<?= DOMINIO ?>cobranzas/ventas">
-                    <i class="fa fa-money-bill"></i>CUENTAS POR COBRAR 2
+                    <i class="fa fa-money-bill"></i>CUENTAS POR COBRAR
                 </a>
             </li>
             <li class="nav-item">
