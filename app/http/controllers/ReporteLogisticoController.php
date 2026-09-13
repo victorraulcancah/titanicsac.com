@@ -58,7 +58,10 @@ class ReporteLogisticoController extends Controller
         }
 
         if ($horario == 'todos') {
-            return " AND TIME(co.fecha_registro) >= '00:00:00' AND TIME(co.fecha_registro) <= '23:59:59' ";
+            // Sin filtro de hora. Antes se comparaba TIME(fecha_registro), y como TIME(NULL) es NULL
+            // los pedidos sin hora registrada desaparecian de "Todos" aunque si salieran en el primer
+            // corte, asi que "Todos" no cuadraba con la suma de los tres cortes.
+            return "";
         }
 
         $fechaInicioPrimerCorte = $this->getFechaInicioPrimerCorte($fechaInicio);
