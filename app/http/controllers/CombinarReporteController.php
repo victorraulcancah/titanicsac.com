@@ -2569,7 +2569,9 @@ class CombinarReporteController extends Controller
         }
 
         if ($horario == 'tercer_corte') {
-            return " AND co.fecha_registro >= '{$fechaFin} 17:00:00' AND co.fecha_registro <= '{$fechaFin} 23:59:59' ";
+            // "De 5 pm a mas": sin tope superior, si no lo registrado pasada la medianoche
+            // no caeria en ningun corte y "Todos" dejaria de cuadrar con la suma.
+            return " AND co.fecha_registro >= '{$fechaFin} 17:00:00' ";
         }
         return "";
     }
