@@ -66,6 +66,9 @@ class ReporteDeudas
                 WHERE co.id_tipo_pago=2 AND co.estado!=2
                 AND co.id_empresa='{$_SESSION['id_empresa']}'
                 AND co.sucursal='{$_SESSION['sucursal']}'
+                -- Pedido ya convertido en venta: su cobro se arrastro a dias_ventas y ya sale
+                -- en el bloque de ventas. Sin esto el mismo cobro aparece dos veces.
+                AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1)
                 $whereFecha
                 $whereCliente
                 $whereVendedor
@@ -157,6 +160,9 @@ class ReporteDeudas
                 WHERE co.id_tipo_pago=2 AND co.estado!=2
                 AND co.id_empresa='{$_SESSION['id_empresa']}'
                 AND co.sucursal='{$_SESSION['sucursal']}'
+                -- Pedido ya convertido en venta: su cobro se arrastro a dias_ventas y ya sale
+                -- en el bloque de ventas. Sin esto el mismo cobro aparece dos veces.
+                AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1)
                 $whereFecha
                 $whereCliente
                 $whereVendedor
