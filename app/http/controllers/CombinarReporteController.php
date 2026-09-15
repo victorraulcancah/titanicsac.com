@@ -1819,9 +1819,9 @@ class CombinarReporteController extends Controller
             $fechaInicioPrimerCorte = $this->getFechaInicioPrimerCorte($fechaSeleccionada);
             $horarioLabels = [
                 'todos' => 'Todos',
-                'primer_corte' => "Primer Corte — Pedidos base (hasta {$fechaFinSeleccionada} 08:00)",
-                'segundo_corte' => "Segundo Corte — Aumentos ({$fechaFinSeleccionada} 08:00 - 15:00)",
-                'tercer_corte' => "Tercer Corte — Aumentos ({$fechaFinSeleccionada} 15:00 - 23:59)",
+                'primer_corte' => "Primer Corte — Pedidos base (hasta {$fechaFinSeleccionada} " . substr($this->limitesCorte()[0], 0, 5) . ")",
+                'segundo_corte' => "Segundo Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[0], 0, 5) . " - " . substr($this->limitesCorte()[1], 0, 5) . ")",
+                'tercer_corte' => "Tercer Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[1], 0, 5) . " - 23:59)",
             ];
             $html .= "<p style=''>Horario: " . ($horarioLabels[$horario] ?? ucfirst($horario)) . "</p>";
         }
@@ -2068,9 +2068,9 @@ class CombinarReporteController extends Controller
             $fechaInicioPrimerCorte = $this->getFechaInicioPrimerCorte($fechaSeleccionada);
             $horarioLabels = [
                 'todos' => 'Todos',
-                'primer_corte' => "Primer Corte — Pedidos base (hasta {$fechaFinSeleccionada} 08:00)",
-                'segundo_corte' => "Segundo Corte — Aumentos ({$fechaFinSeleccionada} 08:00 - 15:00)",
-                'tercer_corte' => "Tercer Corte — Aumentos ({$fechaFinSeleccionada} 15:00 - 23:59)",
+                'primer_corte' => "Primer Corte — Pedidos base (hasta {$fechaFinSeleccionada} " . substr($this->limitesCorte()[0], 0, 5) . ")",
+                'segundo_corte' => "Segundo Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[0], 0, 5) . " - " . substr($this->limitesCorte()[1], 0, 5) . ")",
+                'tercer_corte' => "Tercer Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[1], 0, 5) . " - 23:59)",
             ];
             $html .= "<p style=''>Horario: " . ($horarioLabels[$horario] ?? ucfirst($horario)) . "</p>";
         }
@@ -2324,9 +2324,9 @@ class CombinarReporteController extends Controller
             $fechaInicioPrimerCorte = $this->getFechaInicioPrimerCorte($fechaSeleccionada);
             $horarioLabels = [
                 'todos' => 'Todos',
-                'primer_corte' => "Primer Corte — Pedidos base (hasta {$fechaFinSeleccionada} 08:00)",
-                'segundo_corte' => "Segundo Corte — Aumentos ({$fechaFinSeleccionada} 08:00 - 15:00)",
-                'tercer_corte' => "Tercer Corte — Aumentos ({$fechaFinSeleccionada} 15:00 - 23:59)",
+                'primer_corte' => "Primer Corte — Pedidos base (hasta {$fechaFinSeleccionada} " . substr($this->limitesCorte()[0], 0, 5) . ")",
+                'segundo_corte' => "Segundo Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[0], 0, 5) . " - " . substr($this->limitesCorte()[1], 0, 5) . ")",
+                'tercer_corte' => "Tercer Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[1], 0, 5) . " - 23:59)",
             ];
             $html .= "<p style=''>Horario: " . ($horarioLabels[$horario] ?? ucfirst($horario)) . "</p>";
         }
@@ -2555,24 +2555,33 @@ class CombinarReporteController extends Controller
         return " AND DATE(co.fecha) BETWEEN '$fechaInicioFiltro' AND '$fechaFin' ";
     }
 
+    /**
+     * Horas que separan los tres cortes. La pestana "Por Camion" usa el horario nuevo
+     * (base hasta las 15:00, aumentos de 15:00 a 17:00 y de 17:00 en adelante); el resto
+     * de pestanas conserva el de siempre. Se distinguen por el parametro origen_corte.
+     */
+    private function limitesCorte()
+    {
+        $origen = $_GET['origen_corte'] ?? $_POST['origen_corte'] ?? '';
+        return ($origen === 'camion')
+            ? ['15:00:00', '17:00:00']
+            : ['08:00:00', '15:00:00'];
+    }
+
     private function buildFiltroHorarioCorte($fechaInicio, $fechaFin, $horario)
     {
         if ($horario == "" || $horario == "todos") {
             return "";
         }
-        $fechaInicioPrimerCorte = $this->getFechaInicioPrimerCorte($fechaInicio);
+        list($h1, $h2) = $this->limitesCorte();
         if ($horario == 'primer_corte') {
-            return " AND co.fecha_registro < '{$fechaFin} 08:00:00' ";
+            return " AND co.fecha_registro < '{$fechaFin} {$h1}' ";
         }
         if ($horario == 'segundo_corte') {
-            return " AND co.fecha_registro >= '{$fechaFin} 08:00:00' AND co.fecha_registro < '{$fechaFin} 15:00:00' ";
-        }
-
-        if ($horario == 'tercer_corte') {
-            return " AND co.fecha_registro >= '{$fechaFin} 15:00:00' AND co.fecha_registro <= '{$fechaFin} 23:59:59' ";
+            return " AND co.fecha_registro >= '{$fechaFin} {$h1}' AND co.fecha_registro < '{$fechaFin} {$h2}' ";
         }
         if ($horario == 'tercer_corte') {
-            return " AND co.fecha_registro >= '{$fechaFin} 14:00:00' AND co.fecha_registro <= '{$fechaFin} 23:59:59' ";
+            return " AND co.fecha_registro >= '{$fechaFin} {$h2}' AND co.fecha_registro <= '{$fechaFin} 23:59:59' ";
         }
         return "";
     }
@@ -2580,7 +2589,8 @@ class CombinarReporteController extends Controller
     private function buildFiltroHorarioProductoCorte($fechaInicio, $fechaFin, $horario)
     {
         if ($horario == 'primer_corte') {
-            return " AND (pc.fecha_registro IS NULL OR pc.fecha_registro < '{$fechaFin} 08:00:00') ";
+            list($h1, ) = $this->limitesCorte();
+            return " AND (pc.fecha_registro IS NULL OR pc.fecha_registro < '{$fechaFin} {$h1}') ";
         }
         return str_replace('co.fecha_registro', 'pc.fecha_registro', $this->buildFiltroHorarioCorte($fechaInicio, $fechaFin, $horario));
     }

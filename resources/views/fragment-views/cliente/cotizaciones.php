@@ -266,9 +266,9 @@
                     <label for="filtro-horario-camion" class="mt-2">Filtrar por horario:</label>
                     <select id="filtro-horario-camion" class="form-control">
                         <option value="todos">Todos</option>
-                        <option value="primer_corte">PRIMER CORTE — Pedidos base (00:00 - 08:00 día carga)</option>
-                        <option value="segundo_corte">SEGUNDO CORTE — Aumentos (08:00 - 15:00 día carga)</option>
-                        <option value="tercer_corte">TERCER CORTE — Aumentos (15:00 - 23:59 día carga)</option>
+                        <option value="primer_corte">PRIMER CORTE — Pedidos base (00:00 - 15:00 día carga)</option>
+                        <option value="segundo_corte">SEGUNDO CORTE — Aumentos (15:00 - 17:00 día carga)</option>
+                        <option value="tercer_corte">TERCER CORTE — Aumentos (17:00 - 23:59 día carga)</option>
                     </select>
                 </div>
                 <div id="imprimirPorRuta" class="mt-3" style="display:none;">
@@ -1253,9 +1253,12 @@
             let tipo = $('#camionconsolodidado').val();
             // El corte de horario se puede elegir tanto en la pestaña Por Mercado como en Por Camión:
             // se toma el de la pestaña visible.
-            let horario = $("#imprimirPorCamion").is(":visible")
+            let esPorCamion = $("#imprimirPorCamion").is(":visible");
+            let horario = esPorCamion
                 ? $("#filtro-horario-camion").val()
                 : $("#filtro-horario").val();
+            // Solo la pestaña Por Camión usa el horario nuevo (15:00 / 17:00)
+            let origenCorte = esPorCamion ? 'camion' : 'mercado';
             const { PDFDocument } = PDFLib;
             const combinedPdf = await PDFDocument.create();
 
@@ -1274,6 +1277,7 @@
                 data.append('medida', medida);
                 data.append('tipo', tipo);
                 data.append('horario', horario);
+                data.append('origen_corte', origenCorte);
                 let params = new URLSearchParams(data);
                 params = params.toString();
                 let url_r = (camion == 0) ? `r/pedido/reporte/camion/consolidado-total?${params}` : `r/pedido/reporte/camion/consolidado?${params}`;
