@@ -1821,7 +1821,7 @@ class CombinarReporteController extends Controller
                 'todos' => 'Todos',
                 'primer_corte' => "Primer Corte — Pedidos base (hasta {$fechaFinSeleccionada} " . substr($this->limitesCorte()[0], 0, 5) . ")",
                 'segundo_corte' => "Segundo Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[0], 0, 5) . " - " . substr($this->limitesCorte()[1], 0, 5) . ")",
-                'tercer_corte' => "Tercer Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[1], 0, 5) . " - 23:59)",
+                'tercer_corte' => "Tercer Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[1], 0, 5) . ($this->esCorteCamion() ? " en adelante)" : " - 23:59)"),
             ];
             $html .= "<p style=''>Horario: " . ($horarioLabels[$horario] ?? ucfirst($horario)) . "</p>";
         }
@@ -2070,7 +2070,7 @@ class CombinarReporteController extends Controller
                 'todos' => 'Todos',
                 'primer_corte' => "Primer Corte — Pedidos base (hasta {$fechaFinSeleccionada} " . substr($this->limitesCorte()[0], 0, 5) . ")",
                 'segundo_corte' => "Segundo Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[0], 0, 5) . " - " . substr($this->limitesCorte()[1], 0, 5) . ")",
-                'tercer_corte' => "Tercer Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[1], 0, 5) . " - 23:59)",
+                'tercer_corte' => "Tercer Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[1], 0, 5) . ($this->esCorteCamion() ? " en adelante)" : " - 23:59)"),
             ];
             $html .= "<p style=''>Horario: " . ($horarioLabels[$horario] ?? ucfirst($horario)) . "</p>";
         }
@@ -2326,7 +2326,7 @@ class CombinarReporteController extends Controller
                 'todos' => 'Todos',
                 'primer_corte' => "Primer Corte — Pedidos base (hasta {$fechaFinSeleccionada} " . substr($this->limitesCorte()[0], 0, 5) . ")",
                 'segundo_corte' => "Segundo Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[0], 0, 5) . " - " . substr($this->limitesCorte()[1], 0, 5) . ")",
-                'tercer_corte' => "Tercer Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[1], 0, 5) . " - 23:59)",
+                'tercer_corte' => "Tercer Corte — Aumentos ({$fechaFinSeleccionada} " . substr($this->limitesCorte()[1], 0, 5) . ($this->esCorteCamion() ? " en adelante)" : " - 23:59)"),
             ];
             $html .= "<p style=''>Horario: " . ($horarioLabels[$horario] ?? ucfirst($horario)) . "</p>";
         }
@@ -2560,10 +2560,15 @@ class CombinarReporteController extends Controller
      * (base hasta las 15:00, aumentos de 15:00 a 17:00 y de 17:00 en adelante); el resto
      * de pestanas conserva el de siempre. Se distinguen por el parametro origen_corte.
      */
-    private function limitesCorte()
+    private function esCorteCamion()
     {
         $origen = $_GET['origen_corte'] ?? $_POST['origen_corte'] ?? '';
-        return ($origen === 'camion')
+        return $origen === 'camion';
+    }
+
+    private function limitesCorte()
+    {
+        return $this->esCorteCamion()
             ? ['15:00:00', '17:00:00']
             : ['08:00:00', '15:00:00'];
     }
@@ -2581,7 +2586,12 @@ class CombinarReporteController extends Controller
             return " AND co.fecha_registro >= '{$fechaFin} {$h1}' AND co.fecha_registro < '{$fechaFin} {$h2}' ";
         }
         if ($horario == 'tercer_corte') {
-            return " AND co.fecha_registro >= '{$fechaFin} {$h2}' AND co.fecha_registro <= '{$fechaFin} 23:59:59' ";
+            // En Por Camion el tercer corte es "de 17:00 en adelante": sin tope, porque lo
+            // registrado pasada la medianoche quedaba fuera de los tres cortes pero si salia
+            // en "Todos". Los demas reportes conservan el cierre a las 23:59 de siempre.
+            return $this->esCorteCamion()
+                ? " AND co.fecha_registro >= '{$fechaFin} {$h2}' "
+                : " AND co.fecha_registro >= '{$fechaFin} {$h2}' AND co.fecha_registro <= '{$fechaFin} 23:59:59' ";
         }
         return "";
     }
