@@ -110,15 +110,11 @@ $id_role = isset($_SESSION['rol'])?$_SESSION['rol']:1;
                     <i class="ti-calendar"></i>COMPRAS
                 </a>
             </li>
-            <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" id="navbarDropdownMenuLink" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <li class="nav-item">
+                <!-- ALMACEN va directo a Productos: Kardex y Cuadre de Inventario quedan ocultos -->
+                <a class="nav-link" href="<?= DOMINIO ?>almacen/productos">
                     <i class="ti-view-grid"></i>ALMACÉN
                 </a>
-                <ul class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
-                    <li><a class="dropdown-item" href="<?= DOMINIO ?>almacen/productos">Productos</a></li>
-                    <li><a class="dropdown-item" href="<?= DOMINIO ?>almacen/kardex">Kardex</a></li>
-                    <li><a class="dropdown-item" href="<?= DOMINIO ?>almacen/movimientos">Cuadre de Inventario</a></li>
-                </ul>
             </li>
             <li class="nav-item panel-palpitante">
                 <a class="nav-link texto-palpitante" href="<?= DOMINIO ?>almacen/intercambio/productos">
