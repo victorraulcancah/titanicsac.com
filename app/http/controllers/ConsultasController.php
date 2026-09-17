@@ -225,7 +225,9 @@ class ConsultasController extends Controller
             $lista[0]["cuotas"][] = [
                 'cuotaid' => $cuota['dias_venta_id'],
                 'fecha' => $cuota['fecha'],
-                'monto' => $cuota['monto']
+                'monto' => $cuota['monto'],
+                'estado' => $cuota['estado'],
+                'tipo_pago' => $cuota['tipo_pago']
             ];
         }
         return json_encode($lista);

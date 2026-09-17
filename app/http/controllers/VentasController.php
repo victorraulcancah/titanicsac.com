@@ -1077,11 +1077,40 @@ class VentasController extends Controller
             $id_usuario_pago = isset($_SESSION['usuario_fac']) ? $_SESSION['usuario_fac'] : (isset($_SESSION['usuario_id']) ? $_SESSION['usuario_id'] : null);
             $fecha_actual_pago = date('Y-m-d H:i:s');
 
-            foreach ($listaPagos as $diaP) {
-                $tipo_pago_p = isset($diaP['metodo_nombre']) ? $diaP['metodo_nombre'] : 'Efectivo';
-                $sql = "insert into dias_ventas set id_venta='{$_POST['idVenta']}',
-                    monto='{$diaP['monto']}',fecha='{$diaP['fecha']}',estado='0', id_usuario='$id_usuario_pago', fecha_pago_real='$fecha_actual_pago', tipo_pago='$tipo_pago_p'";
-                $c_venta->exeSQL($sql);
+            // Cuotas. Antes se volvian a insertar TODAS en cada edicion y siempre como pendientes:
+            // se duplicaban y las ya cobradas aparecian otra vez como deuda. Ahora:
+            //  - las cobradas en la BD (estado 1) no se tocan: conservan monto, metodo, usuario y fecha
+            //  - las pendientes se reemplazan por las que vienen del modal
+            //  - una cuota marcada como pagada en el modal se registra con el usuario y la hora actuales
+            // Las cuotas anuladas quedan registradas en cobros_anulados, que guarda su propia copia.
+            $idVentaEdit = intval($_POST['idVenta']);
+            $cuotasCobradas = [];
+            $rsCobradas = $this->conexion->query("SELECT dias_venta_id FROM dias_ventas WHERE id_venta = $idVentaEdit AND estado = '1'");
+            foreach ($rsCobradas as $filaCobrada) {
+                $cuotasCobradas[$filaCobrada['dias_venta_id']] = true;
+            }
+            $this->conexion->query("DELETE FROM dias_ventas WHERE id_venta = $idVentaEdit AND (estado IS NULL OR estado <> '1')");
+
+            foreach ((array)$listaPagos as $diaP) {
+                $cuotaIdEdit = isset($diaP['cuotaid']) ? intval($diaP['cuotaid']) : 0;
+                if ($cuotaIdEdit && isset($cuotasCobradas[$cuotaIdEdit])) {
+                    continue; // ya cobrada: se queda como esta
+                }
+                $montoCuota = isset($diaP['monto']) ? floatval($diaP['monto']) : 0;
+                if ($montoCuota <= 0) {
+                    continue;
+                }
+                $fechaCuota = $this->conexion->real_escape_string(!empty($diaP['fecha']) ? $diaP['fecha'] : date('Y-m-d'));
+                $metodoCuota = isset($diaP['metodo_nombre']) ? trim($diaP['metodo_nombre']) : '';
+                $metodoSql = ($metodoCuota === '') ? 'NULL' : "'" . $this->conexion->real_escape_string($metodoCuota) . "'";
+                if (isset($diaP['estado']) && $diaP['estado'] == '1') {
+                    $sql = "INSERT INTO dias_ventas SET id_venta = $idVentaEdit, monto = '$montoCuota', fecha = '$fechaCuota',
+                            estado = '1', tipo_pago = $metodoSql, id_usuario = '$id_usuario_pago', fecha_pago_real = '$fecha_actual_pago'";
+                } else {
+                    $sql = "INSERT INTO dias_ventas SET id_venta = $idVentaEdit, monto = '$montoCuota', fecha = '$fechaCuota',
+                            estado = '0', tipo_pago = $metodoSql, id_usuario = '$id_usuario_pago', fecha_pago_real = NULL";
+                }
+                $this->conexion->query($sql);
             }
             /*  $dataSend['dias_pago'] = json_encode($dataSend['dias_pagos']); */
             #verificar los cambios de cantidades
