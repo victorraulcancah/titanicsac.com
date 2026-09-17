@@ -475,7 +475,8 @@ if (isset($_GET["coti"])) {
                                             <button v-if="item.estado != '1'" type="button" class="btn btn-success btn-sm" title="Pagar" @click="pagarCuotaVenta(item)"><i class="fa fa-money-bill"></i></button>
                                             <button v-if="item.estado == '1' && !item.cuotaPagadaOrigen" type="button" class="btn btn-warning btn-sm" title="Deshacer pago" @click="item.estado = '0'"><i class="fa fa-undo"></i></button>
                                             <button v-if="item.estado != '1'" type="button" class="btn btn-danger btn-sm" title="Quitar cuota" @click="quitardiaspago(index)"><i class="fa fa-times"></i></button>
-                                            <span v-if="item.cuotaPagadaOrigen" class="btn btn-light btn-sm disabled" title="Cobro ya registrado: para anularlo use Cuentas por Cobrar"><i class="fa fa-lock"></i></span>
+                                            <button v-if="item.cuotaPagadaOrigen && esAdmin" type="button" class="btn btn-danger btn-sm" title="Anular pago" @click="anularPagoCuota(item)"><i class="fa fa-ban"></i></button>
+                                            <span v-if="item.cuotaPagadaOrigen && !esAdmin" class="btn btn-light btn-sm disabled" title="Cobro ya registrado: solo el administrador puede anularlo"><i class="fa fa-lock"></i></span>
                                         </div>
                                     </td>
                                 </tr>
@@ -613,6 +614,7 @@ if (isset($_GET["coti"])) {
                 },
                 usar_precio: '1', // nivel "Precio", igual que en el pedido y en la venta nueva
                 metodosPagoCxC: ["Efectivo", "Plin", "Yape", "BCP", "BBVA"], // mismas opciones que Cuentas por Cobrar
+                esAdmin: <?= (isset($_SESSION['rol']) && $_SESSION['rol'] == 1) ? 'true' : 'false' ?>, // solo el admin anula cobros desde aqui
                 productos: [],
                 precioProductos: [],
                 venta: {
@@ -1217,6 +1219,62 @@ if (isset($_GET["coti"])) {
                     if (item.estado == '1') return 'bg-success';
                     let hoy = this.hoyISO();
                     return (item.fecha && item.fecha < hoy) ? 'bg-danger' : 'bg-primary';
+                },
+                anularPagoCuota(item) {
+                    // Solo administrador. Mismo proceso que Cuentas por Cobrar: el cobro NO se borra, queda
+                    // ANULADO (sigue visible en Mis Cobros y Arqueo sin sumar) y la cuota vuelve a pendiente,
+                    // con lo que ya se puede editar. Se aplica en el momento, igual que en Cuentas por Cobrar.
+                    const vue = this;
+                    if (!vue.esAdmin || !item.cuotaid) {
+                        return;
+                    }
+                    Swal.fire({
+                        title: '¿Anular el pago de ' + vue.monedaSibol + ' ' + vue.formatoDecimal(item.monto) + '?',
+                        text: 'El cobro quedará como ANULADO en Mis Cobros y la cuota volverá a estar pendiente.',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Sí, anular',
+                        cancelButtonText: 'Cancelar'
+                    }).then((result) => {
+                        if (!result.isConfirmed) {
+                            return;
+                        }
+                        $("#loader-menor").show();
+                        $.ajax({
+                            headers: {
+                                'token-app': localStorage.getItem("_token")
+                            },
+                            type: 'POST',
+                            url: _URL + '/ajs/pagar/cuota/eliminar',
+                            data: {
+                                id: item.cuotaid,
+                                tipo: 'v',
+                                monto: item.monto
+                            },
+                            success: function (resp) {
+                                $("#loader-menor").hide();
+                                let data = resp;
+                                try {
+                                    if (typeof resp === 'string') data = JSON.parse(resp);
+                                } catch (e) {
+                                    data = null;
+                                }
+                                if (data === true) {
+                                    item.estado = '0';
+                                    item.cuotaPagadaOrigen = false;
+                                    alertExito("Pago anulado", "La cuota quedó pendiente y ya se puede editar.");
+                                } else {
+                                    alertAdvertencia((data && data.msg) ? data.msg : "No se pudo anular el pago");
+                                }
+                            },
+                            error: function () {
+                                $("#loader-menor").hide();
+                                alertAdvertencia("No se pudo anular el pago");
+                            }
+                        });
+                    });
                 },
                 quitardiaspago(index) {
                     this.venta.dias_lista.splice(index, 1);
