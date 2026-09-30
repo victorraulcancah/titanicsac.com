@@ -225,24 +225,28 @@ class ReporteDeudas
     {
         $filtroUsuarioVenta = ($whereVendedor!="") ? " AND v.id_vendedor={$id_vendedor} " : "";
         try {
-            /* $sql = "SELECT 
+            // Deuda de las NOTAS DE VENTA (Cuentas por Cobrar 2). Estaba comentada, asi que el
+            // reporte solo mostraba pedidos; con la deuda viviendo hoy en las ventas, quedaba fuera
+            // casi todo. Devuelve las mismas columnas que el bloque de pedidos de abajo.
+            $sql = "SELECT
                 'v' AS tipo_co,
                 v.id_venta,
                 CONCAT(v.serie, ' | ', v.numero) AS factura,
+                IFNULL(us.usuario, '') AS vendedor,
                 MAX(v.fecha_emision) AS fecha_emision,
                 MAX(v.fecha_vencimiento) AS fecha_vencimiento,
                 c.documento,
                 c.datos AS cliente,
                 c.mercado AS mercado,
                 MAX(v.total) AS total,
-                '' AS vendedor,
                 SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END) AS pagado,
                 (MAX(v.total) - SUM(CASE WHEN dv.estado = '1' THEN dv.monto ELSE 0 END)) AS saldo
             FROM ventas AS v
-            INNER JOIN dias_ventas AS dv ON v.id_venta = dv.id_venta 
+            INNER JOIN dias_ventas AS dv ON v.id_venta = dv.id_venta
             INNER JOIN clientes AS c ON v.id_cliente = c.id_cliente
-            WHERE v.estado = 1 
-            AND v.id_tipo_pago = 2 
+            LEFT JOIN usuarios us ON us.usuario_id = v.id_vendedor
+            WHERE v.estado = 1
+            AND v.id_tipo_pago = 2
             AND v.sucursal = '{$_SESSION['sucursal']}'
             AND v.id_empresa = '{$_SESSION['id_empresa']}'
             $whereFechaVenta
@@ -251,12 +255,11 @@ class ReporteDeudas
             $whereClientes
             $whereDiasVisita
             $whereRuta
-            GROUP BY v.id_venta , c.datos, c.mercado
+            GROUP BY v.id_venta, c.documento, c.datos, c.mercado, us.usuario
             ORDER BY c.mercado ASC, c.datos ASC";
-    
+
             $fila = mysqli_query($this->conectar, $sql);
-            $lista = mysqli_fetch_all($fila, MYSQLI_ASSOC); */
-            $lista = [];
+            $lista = $fila ? mysqli_fetch_all($fila, MYSQLI_ASSOC) : [];
 
             // Consulta de cotizaciones
             $sql = "SELECT 
@@ -292,6 +295,9 @@ class ReporteDeudas
             WHERE co.id_tipo_pago = 2 AND co.estado!=2
             AND co.id_empresa='{$_SESSION['id_empresa']}'
             AND co.sucursal='{$_SESSION['sucursal']}'
+            -- Pedido ya convertido en venta: su deuda vive en la venta y ya sale en el bloque
+            -- de arriba. Sin esto el mismo importe se cuenta dos veces.
+            AND NOT EXISTS (SELECT 1 FROM ventas v2 WHERE v2.id_coti = co.cotizacion_id AND v2.estado = 1)
             $whereFechaCoti
             $whereCliente
             $whereVendedor
