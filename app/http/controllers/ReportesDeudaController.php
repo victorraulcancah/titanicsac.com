@@ -211,10 +211,13 @@ class ReportesDeudaController extends Controller
       $total_pagado += $deuda['pagado'];
       $total_saldo += ($deuda['total'] - $deuda['pagado']);
       $total += $deuda['total'];
+      // Fecha y hora en que se registro el cobro
+      $fechaCobro = empty($deuda['fecha_pago_real']) ? '-' : date('d/m/Y H:i', strtotime($deuda['fecha_pago_real']));
       $filasCobros[] = "
           <tr>
           <td style='text-align: left;'>{$deuda['factura']}</td>
           <td style='text-align: left;'>{$deuda['cliente']}</td>
+          <td style='text-align: center;'>{$fechaCobro}</td>
           <td style='text-align: center;'>{$dias_visitas}</td>
           <td style='text-align: center;'>{$deuda['id_ruta']}</td>
           <td style='text-align: center;'>{$deuda['metodo_pago']}</td>
@@ -229,7 +232,7 @@ class ReportesDeudaController extends Controller
     $total = number_format($total, 2);
     $footerTable = "
       <tr>
-        <td style='text-align: right;font-weight:bold;' colspan='5'>TOTAL </td>
+        <td style='text-align: right;font-weight:bold;' colspan='6'>TOTAL </td>
         <td style='text-align: right;font-weight:bold;'>{$total_pagado}</td>
       <tr/>
     ";
@@ -248,6 +251,7 @@ class ReportesDeudaController extends Controller
                   <tr>
                       <th style='padding: 0px 12px;'>Factura</th>
                       <th style='padding: 0px 12px;'>CLIENTE</th>
+                      <th style='padding: 0px 12px;'>FECHA/HORA</th>
                       <th style='padding: 0px 12px;'>DIAS VISITA</th>
                       <th style='padding: 0px 12px;'>RUTA</th>
                       <th style='padding: 0px 12px;'>MET.PAGO</th>
