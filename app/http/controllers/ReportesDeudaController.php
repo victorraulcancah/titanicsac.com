@@ -480,11 +480,15 @@ class ReportesDeudaController extends Controller
       $total_pagado += $deuda['pagado'];
       $total_saldo += ($deuda['total'] - $deuda['pagado']);
       $total += $deuda['total'];
+      // Fecha del documento (la de la nota de venta, o la del pedido si aun no se convirtio)
+      $fechaDoc = empty($deuda['fecha_emision']) || $deuda['fecha_emision'] == '0000-00-00'
+        ? '-' : date('d/m/Y', strtotime($deuda['fecha_emision']));
       $rowTable .= "
           <tr>
           <td style='text-align: left;'>{$deuda['documento']}</td>
           <td style='text-align: left;'>{$deuda['cliente']}</td>
           <td style='text-align: center;'>{$deuda['factura']}</td>
+          <td style='text-align: center;'>{$fechaDoc}</td>
           <td style='text-align: center;'>{$dias}</td>
           <td style='text-align: center;'>{$subtotal}</td>
           <td style='text-align: center;'>{$saldo}</td>
@@ -498,7 +502,7 @@ class ReportesDeudaController extends Controller
     $total = number_format($total, 2);
     $footerTable = "
       <tr>
-        <td style='text-align: right;font-weight:bold;' colspan='4'>TOTAL </td>
+        <td style='text-align: right;font-weight:bold;' colspan='5'>TOTAL </td>
         <td style='text-align: right;font-weight:bold;'>{$total}</td>
         <td style='text-align: right;font-weight:bold;'>{$total_saldo}</td>
       <tr/>
@@ -518,7 +522,8 @@ class ReportesDeudaController extends Controller
                   <tr>                 
                       <th style='padding: 0px 12px;'>DNI</th>
                       <th style='padding: 0px 12px;'>CLIENTE</th>
-                      <th style='padding: 0px 12px;'>N°PEDIDO</th>
+                      <th style='padding: 0px 12px;'>DOCUMENTO</th>
+                      <th style='padding: 0px 12px;'>FECHA</th>
                       <th style='padding: 0px 12px;'>DIAS</th>
                       <th style='padding: 0px 12px;'>MONTO</th>
                       <th style='padding: 0px 12px;'>SALDO</th>
