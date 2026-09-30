@@ -42,7 +42,46 @@ class ReporteDeudas
     public function getAllCobros($whereCliente, $whereVendedor, $whereFecha, $whereClientes, $whereDiasVisita, $whereRuta)
     {
         try {
+            // Los cobros salen de las dos fuentes: las NOTAS DE VENTA (dias_ventas), que es donde
+            // vive la deuda hoy, y los PEDIDOS antiguos que nunca se convirtieron en venta. Los
+            // filtros llegan apuntando al pedido (cu.id_usuario, co.fecha), se traducen para ventas.
+            $whereFechaVentas = str_replace('co.fecha', 'v.fecha_emision', $whereFecha);
+            $whereVendedorVentas = str_replace('cu.', 'dv.', $whereVendedor);
+
             $sql = "
+                (
+                SELECT 
+                'v' AS tipo_co,
+                v.id_venta,
+                CONCAT(v.serie,'-',v.numero) AS factura,
+                us.usuario vendedor, 
+                v.fecha_emision AS fecha_emision,
+                c.id_cliente,
+                CONCAT(c.documento ,' | ' ,c.datos) AS cliente,
+                v.total,
+                dv.monto as pagado,
+                IFNULL(dv.tipo_pago,'-') AS 'metodo_pago',
+                IFNULL(c.dias_visitas,'') AS dias_visitas,
+                IFNULL(c.id_ruta,'') AS id_ruta,
+                dv.fecha_pago_real
+
+                FROM ventas v
+
+                INNER JOIN clientes AS c ON c.id_cliente=v.id_cliente
+                INNER JOIN dias_ventas dv ON dv.id_venta = v.id_venta and dv.estado=1
+                LEFT JOIN usuarios us ON us.usuario_id = dv.id_usuario
+                WHERE v.id_tipo_pago=2 AND v.estado=1
+                AND v.id_empresa='{$_SESSION['id_empresa']}'
+                AND v.sucursal='{$_SESSION['sucursal']}'
+                $whereFechaVentas
+                $whereCliente
+                $whereVendedorVentas
+                $whereClientes
+                $whereDiasVisita
+                $whereRuta
+                )
+                UNION ALL
+                (
                 SELECT 
                 'c' AS tipo_co,
                 co.cotizacion_id AS id_venta,
@@ -75,7 +114,8 @@ class ReporteDeudas
                 $whereClientes
                 $whereDiasVisita
                 $whereRuta
-                ORDER BY cu.fecha_pago_real DESC,FIELD(c.dias_visitas,'LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO'),c.id_ruta ASC
+                )
+                ORDER BY fecha_pago_real DESC,FIELD(dias_visitas,'LUNES','MARTES','MIERCOLES','JUEVES','VIERNES','SABADO','DOMINGO'),id_ruta ASC
             ";
             $fila = mysqli_query($this->conectar, $sql);
             $lista2 =  mysqli_fetch_all($fila, MYSQLI_ASSOC);
