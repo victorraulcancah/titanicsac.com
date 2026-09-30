@@ -23,9 +23,30 @@ class ReportesDeudaController extends Controller
 
   public function __construct()
   {
+    // Con muchos cobros el HTML de una sola pieza supera pcre.backtrack_limit y mPDF aborta
+    ini_set('pcre.backtrack_limit', '50000000');
+    ini_set('pcre.recursion_limit', '5000000');
     $this->mpdf = new \Mpdf\Mpdf(['mode' => 'utf-8', 'format' => 'A4', 0]);
     $this->conexion = (new Conexion())->getConexion();
     $this->reporte = new ReporteDeudas();
+  }
+
+  /**
+   * Escribe el PDF en bloques. Recibe la parte de arriba, las filas <tr> ya armadas,
+   * la cabecera de la tabla que se repite en cada bloque y el pie.
+   * Asi ningun WriteHTML es tan grande como para pasar el limite de mPDF.
+   */
+  private function escribirPorBloques($htmlInicio, $filas, $htmlTablaIni, $htmlTablaFin, $htmlFin, $porBloque = 400)
+  {
+    $this->mpdf->WriteHTML($htmlInicio, \Mpdf\HTMLParserMode::HTML_BODY);
+    if (empty($filas)) {
+      $this->mpdf->WriteHTML($htmlTablaIni . $htmlTablaFin, \Mpdf\HTMLParserMode::HTML_BODY);
+    } else {
+      foreach (array_chunk($filas, $porBloque) as $bloque) {
+        $this->mpdf->WriteHTML($htmlTablaIni . implode('', $bloque) . $htmlTablaFin, \Mpdf\HTMLParserMode::HTML_BODY);
+      }
+    }
+    $this->mpdf->WriteHTML($htmlFin, \Mpdf\HTMLParserMode::HTML_BODY);
   }
 
   public function obtenerFiltros($tipo,$id_cliente,$id_vendedor,$camion,$diasVisita,$ruta)
@@ -178,7 +199,7 @@ class ReportesDeudaController extends Controller
     }
 
     $listaDeuda = $this->reporte->getAllCobros($whereCliente, $whereVendedor,$whereFecha, $whereClientes, $whereDiasVisita, $whereRuta);
-    $rowTable = '';
+    $filasCobros = [];
     $total_pagado = 0;
     $total_saldo = 0;
     $total = 0;
@@ -190,7 +211,7 @@ class ReportesDeudaController extends Controller
       $total_pagado += $deuda['pagado'];
       $total_saldo += ($deuda['total'] - $deuda['pagado']);
       $total += $deuda['total'];
-      $rowTable .= "
+      $filasCobros[] = "
           <tr>
           <td style='text-align: left;'>{$deuda['factura']}</td>
           <td style='text-align: left;'>{$deuda['cliente']}</td>
@@ -213,18 +234,18 @@ class ReportesDeudaController extends Controller
       <tr/>
     ";
 
-    $html = "
-     
+    $htmlInicio = "
     <div style='width: 100%; '>
         <div style='width: 100%; text-align: center;'>
-                <h2 style='margin:0px;'>{$titulo}</h2>              
-                <h5 style='margin:0px;'>{$titulo_fecha}</h5>              
-        </div> 
-        
+                <h2 style='margin:0px;'>{$titulo}</h2>
+                <h5 style='margin:0px;'>{$titulo_fecha}</h5>
+        </div>
         <div style='width: 100%; margin-top:20px;'>
+    ";
+    $htmlTablaIni = "
             <table border='1' style='width: 100%; text-align: center;border-collapse: collapse;' >
                 <thead>
-                  <tr>                 
+                  <tr>
                       <th style='padding: 0px 12px;'>Factura</th>
                       <th style='padding: 0px 12px;'>CLIENTE</th>
                       <th style='padding: 0px 12px;'>DIAS VISITA</th>
@@ -234,18 +255,23 @@ class ReportesDeudaController extends Controller
                   </tr>
                 </thead>
                 <tbody>
-                  $rowTable
+    ";
+    $htmlTablaFin = "
                 </tbody>
-                <tfooter>
+            </table>
+    ";
+    $htmlFin = "
+            <table border='1' style='width: 100%; text-align: center;border-collapse: collapse;'>
+                <tbody>
                   $footerTable
-                </tfooter>
+                </tbody>
             </table>
         </div>
-        
     </div>
     ";
-    // exit($html);
-    $this->mpdf->WriteHTML($html, \Mpdf\HTMLParserMode::HTML_BODY);
+
+    // Se escribe por bloques: con muchos cobros, un solo WriteHTML pasa el limite de mPDF
+    $this->escribirPorBloques($htmlInicio, $filasCobros, $htmlTablaIni, $htmlTablaFin, $htmlFin);
     $this->mpdf->Output();
   }
 
@@ -281,8 +307,8 @@ class ReportesDeudaController extends Controller
 
     $listaDeuda = $this->reporte->getAllCobrosByVendedor($whereCliente, $whereVendedor,$whereFecha, $whereClientes, $whereDiasVisita, $whereRuta);
 
-    $rowTableEfectivo = '';
-    $rowTableBancos = '';
+    $filasEfectivo = [];
+    $filasBancos = [];
     $total_pagado = 0;
     $total_saldo = 0;
     $total = 0;
@@ -295,7 +321,7 @@ class ReportesDeudaController extends Controller
       if(strtolower($deuda['metodo_pago'])=='efectivo'){        
         $total_pagado += $deuda['pagado'];
         $total += $deuda['total'];
-        $rowTableEfectivo .= "
+        $filasEfectivo[] = "
             <tr>
               <td style='text-align: left;'>{$deuda['documento']}</td>
               <td style='text-align: left;'>{$deuda['nombre_cliente']}</td>
@@ -315,7 +341,7 @@ class ReportesDeudaController extends Controller
             <td style='text-align: right;font-weight:bold;text-align: left;padding-left:20px;' colspan='2'>{$total_pagado_str}</td>
           <tr/>
         ";
-        $rowTableBancos .= "
+        $filasBancos[] = "
             <tr>
               <td style='text-align: left;'>{$deuda['documento']}</td>
               <td style='text-align: left;'>{$deuda['nombre_cliente']}</td>
@@ -342,18 +368,18 @@ class ReportesDeudaController extends Controller
       <tr/>
     "; */
 
-    $html = "
-     
+    $htmlInicio = "
     <div style='width: 100%; '>
         <div style='width: 100%; text-align: center;'>
-                <h2 style='margin:0px;'>{$titulo}</h2>              
-                <h5 style='margin:0px;'>{$titulo_fecha}</h5>              
-        </div> 
-        
+                <h2 style='margin:0px;'>{$titulo}</h2>
+                <h5 style='margin:0px;'>{$titulo_fecha}</h5>
+        </div>
         <div style='width: 100%; margin-top:20px;'>
+    ";
+    $htmlTablaIni = "
             <table border='1' style='width: 100%; text-align: center;border-collapse: collapse;' >
                 <thead>
-                  <tr>                 
+                  <tr>
                       <th style='padding: 0px 12px;'>DNI</th>
                       <th style='padding: 0px 12px;'>CLIENTE</th>
                       <th style='padding: 0px 12px;'>N°PEDIDO</th>
@@ -365,38 +391,29 @@ class ReportesDeudaController extends Controller
                   </tr>
                 </thead>
                 <tbody>
-                  $rowTableEfectivo
+    ";
+    $htmlTablaFin = "
                 </tbody>
-                <tfooter>
+            </table>
+    ";
+    $htmlEntreTablas = "
+            <table border='1' style='width: 100%; text-align: center;border-collapse: collapse;'>
+                <tbody>
                   $footer_efectivo
-                </tfooter>
-            </table>
-        </div>
-
-        <div style='width: 100%; margin-top:20px;'>
-            <table border='1' style='width: 100%; text-align: center;border-collapse: collapse;' >
-                <thead>
-                  <tr>                 
-                      <th style='padding: 0px 12px;'>DNI</th>
-                      <th style='padding: 0px 12px;'>CLIENTE</th>
-                      <th style='padding: 0px 12px;'>N°PEDIDO</th>
-                      <th style='padding: 0px 12px;'>FECHA PAGO</th>
-                      <th style='padding: 0px 12px;'>TIPO PAGO</th>
-                      <th style='padding: 0px 12px;'>TOTAL</th>
-                      <th style='padding: 0px 12px;'>MONTO</th>
-                      <th style='padding: 0px 12px;'>RESTO</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  $rowTableBancos
                 </tbody>
             </table>
         </div>
-        
+        <div style='width: 100%; margin-top:20px;'>
+    ";
+    $htmlFin = "
+        </div>
     </div>
     ";
-    // exit($html);
-    $this->mpdf->WriteHTML($html, \Mpdf\HTMLParserMode::HTML_BODY);
+
+    // Se escribe por bloques: con muchos cobros, un solo WriteHTML pasa el limite de mPDF.
+    // Primero la tabla de efectivo con su total, y despues la de bancos.
+    $this->escribirPorBloques($htmlInicio, $filasEfectivo, $htmlTablaIni, $htmlTablaFin, $htmlEntreTablas);
+    $this->escribirPorBloques('', $filasBancos, $htmlTablaIni, $htmlTablaFin, $htmlFin);
     $this->mpdf->Output();
 
   }
